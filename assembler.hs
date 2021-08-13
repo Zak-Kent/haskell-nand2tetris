@@ -4,6 +4,8 @@ import qualified Data.Map as Map -- this lets you reference all the things in Da
 import Numeric (showIntAtBase)
 import Data.Char (intToDigit, digitToInt)
 import Data.List (foldl', isPrefixOf)
+import Text.ParserCombinators.ReadP
+
 
 import Text.Printf
 
@@ -20,22 +22,37 @@ toBinaryStr x = showIntAtBase 2 intToDigit x ""
 toDec :: String -> Int
 toDec = foldl' (\acc x -> acc * 2 + digitToInt x) 0
 
--- pad binary strings with extra zeros
-padded :: String -> String
-padded x = printf "%016s" x
+-- zeroPad binary strings with extra zeros
+zeroPad :: String -> String
+zeroPad x = printf "%016s" x
 
-isLabel :: (Int, String) -> Bool
-isLabel (idx, elm) = "(" `isPrefixOf` elm
+isLabel :: (String, Int) -> Bool
+isLabel (line, idx) = "(" `isPrefixOf` line
+
+isComment :: (String, Int) -> Bool
+isComment (line, idx) = "//" `isPrefixOf` line
+
+isParen :: Char -> Bool
+isParen char = any (char ==) "()"
+
+labelP :: ReadP String
+labelP = do
+  satisfy (== '(')
+  label <- many1 (satisfy (\char -> (not $ isParen char)))
+  satisfy (== ')')
+  return label
+
+extractLabel :: String -> String
+-- output of readP_to_S when parse successful: [("label123","")]
+extractLabel label =  fst $ head $ readP_to_S labelP label
+
 
 testRun = do
-  let file = "hack1.txt"
+  let file = "Max.asm"
   contents <- readFile file
-
-  -- TODO this is the first pass looking for labels
-  -- you'll need to make a map out of the pairs left over
-  -- after the filter and inc the index of each pair so
-  -- it matches the line in the program that the label is pointing to
-  print $ filter isLabel $ zip [1..] $ lines contents
-
-  let file2 = "testy.asm"
-  writeFile file2 "hahahahah"
+  let labels = Map.fromList $
+               -- the label refers to the following line in the asm script
+               map (\label -> (extractLabel (fst label), (+ 1) (snd label))) $
+               filter isLabel $
+               zip (lines contents) [1..]
+  print labels
