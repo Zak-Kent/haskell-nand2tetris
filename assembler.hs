@@ -30,8 +30,8 @@ isLabel (line, idx) = "(" `isPrefixOf` line
 isComment :: (String, Int) -> Bool
 isComment (line, idx) = "//" `isPrefixOf` line
 
-isAIns :: (String, Int) -> Bool
-isAIns (line, idx) = "@" `isPrefixOf` line
+isAIns :: String -> Bool
+isAIns line = "@" `isPrefixOf` line
 
 isParen :: Char -> Bool
 isParen char = any (char ==) "()"
@@ -54,6 +54,23 @@ prepLines contents = zip cleanLines [1..]
                      lines contents
         isControlOrSpace c = ((isControl c) || (isSpace c))
 
+translateA :: (M.Map String Int) -> String -> String
+translateA labels line = case M.member cleanline labels of
+                           True -> produceOutput $ labels M.! cleanline
+                           False -> case M.member cleanline preDefinedMap of
+                                      True -> produceOutput $ preDefinedMap M.! cleanline
+                                      False -> "foo"
+  where cleanline = dropWhile ('@' ==) line
+        produceOutput = zeroPad . toBinaryStr
+
+translateC :: String -> String
+translateC line = "C instruction"
+
+translateLine :: (M.Map String Int) -> (String, Int) -> String
+translateLine labels (line, idx) = if isAIns line
+                                     then translateA labels line
+                                     else translateC line
+
 testRun = do
   let file = "Max.asm"
   contents <- readFile file
@@ -63,14 +80,8 @@ testRun = do
                -- which is why there is a +1 on the line number
                map (\label -> (extractLabel (fst label), (+ 1) (snd label))) $
                filter isLabel contentWithLineNums
-
-  -- how to lookup things in labels map
-  -- print $ labels M.! "OUTPUT_FIRST"
-
-  -- you'll likely want to have this dones without the filter all at once
-  -- during the 2nd pass
-  let aIns = filter isAIns contentWithLineNums
-  print aIns
+  let output = map (translateLine labels) contentWithLineNums
+  print output
 
 {-
 1. you need to map over all the lines in contents and first decide if line is A vs. C instruction
