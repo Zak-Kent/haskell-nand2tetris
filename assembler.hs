@@ -4,6 +4,7 @@ import Data.Char (intToDigit, digitToInt, isSpace, isControl)
 import Data.List (foldl', isPrefixOf, dropWhileEnd, nub)
 import Text.ParserCombinators.ReadP
 import Text.Printf
+import Control.Applicative hiding (optional)
 
 preDefinedSymbols = [("R0", 0), ("R1", 1), ("R2", 2), ("R3", 3), ("R4", 4),
                      ("R5", 5), ("R6", 6), ("R7", 7), ("R8", 8), ("R9", 9),
@@ -57,6 +58,44 @@ prepLines contents = zip cleanLines [1..]
                      map (dropWhile isSpace) $
                      lines contents
         isControlOrSpace c = ((isControl c) || (isSpace c))
+
+{- C Intruction Parsing
+   dest = comp ; jump (both dest and jump are optional)
+   binary: 111 a c1 c2 c3 c4 c5 c6 d1 d2 d3 j1 j2 j3
+   a value: determined by command type
+-}
+
+data CInstruction = CInstruction
+                    {dest :: Maybe String,
+                     comp :: String,
+                     jump :: Maybe String
+                    } deriving Show
+
+destP :: ReadP String
+destP = string "M" <|> string "D" <|> string "MD" <|> string "A" <|>
+        string "AM" <|> string "AD" <|> string "AMD"
+
+compP :: ReadP String
+compP = string "0" <|> string "1" <|> string "-1" <|> string "D" <|>
+        string "A" <|> string "!D" <|> string "!A" <|> string "-D" <|>
+        string "-A" <|> string "D+1" <|> string "A+1" <|> string "D-1" <|>
+        string "A-1" <|> string "D+A" <|> string "D-A" <|> string "A-D" <|>
+        string "D&A" <|> string "D|A" <|> string "M" <|> string "!M" <|>
+        string "-M" <|> string "M+1" <|> string "M-1" <|> string "D+M" <|>
+        string "D-M" <|> string "M-D" <|> string "D&M" <|> string "D|M"
+
+jumpP :: ReadP String
+jumpP = string "JGT" <|> string "JEQ" <|> string "JGE" <|> string "JLT" <|>
+        string "JNE" <|> string "JLE" <|> string "JMP"
+
+cInstructionP :: ReadP CInstruction
+cInstructionP = do
+  dest <- option Nothing (fmap Just destP)
+  option Nothing $ (fmap Just $ string "=")
+  comp <- compP
+  option Nothing $ (fmap Just $ string ";")
+  jump <- option Nothing (fmap Just jumpP)
+  return (CInstruction dest comp jump)
 
 translateC :: String -> Maybe String
 translateC line = Just "C instruction"
