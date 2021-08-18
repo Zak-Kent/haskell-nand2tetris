@@ -25,8 +25,8 @@ zeroPad x = printf "%016s" x
 isLabel :: (String, Int) -> Bool
 isLabel (line, idx) = "(" `isPrefixOf` line
 
-isComment :: (String, Int) -> Bool
-isComment (line, idx) = "//" `isPrefixOf` line
+isComment :: String -> Bool
+isComment line = "//" `isPrefixOf` line
 
 isAIns :: String -> Bool
 isAIns line = "@" `isPrefixOf` line
@@ -58,22 +58,16 @@ prepLines contents = zip cleanLines [1..]
                      lines contents
         isControlOrSpace c = ((isControl c) || (isSpace c))
 
-translateA :: (M.Map String Int) -> String -> String
-translateA labels line = case M.member cleanline labels of
-                           True -> produceOutput $ labels M.! cleanline
-                           False -> case M.member cleanline builtInSymbols of
-                                      True -> produceOutput $ builtInSymbols M.! cleanline
-                                      False -> "foo"
-  where cleanline = dropWhile ('@' ==) line
-        produceOutput = zeroPad . toBinaryStr
+translateC :: String -> Maybe String
+translateC line = Just "C instruction"
 
-translateC :: String -> String
-translateC line = "C instruction"
-
-translateLine :: (M.Map String Int) -> (String, Int) -> String
-translateLine labels (line, idx) = if isAIns line
-                                     then translateA labels line
-                                     else translateC line
+translateLine :: (M.Map String Int) -> (String, Int) -> Maybe String
+translateLine symbols (line, idx)
+                | isAIns line = Just (produceOutput $ symbols M.! cleanline)
+                | isComment line = Nothing
+                | otherwise = translateC line
+              where cleanline = dropWhile ('@' ==) line
+                    produceOutput = zeroPad . toBinaryStr
 
 testRun = do
   let file = "Max.asm"
