@@ -1,10 +1,8 @@
 import qualified Data.Map as M -- this lets you reference all the things in Data.map with M.<name>
 import Numeric (showIntAtBase)
 import Data.Char (intToDigit, digitToInt, isSpace, isControl)
-import Data.List (foldl', isPrefixOf, dropWhileEnd)
+import Data.List (foldl', isPrefixOf, dropWhileEnd, nub)
 import Text.ParserCombinators.ReadP
-
-
 import Text.Printf
 
 preDefinedSymbols = [("R0", 0), ("R1", 1), ("R2", 2), ("R3", 3), ("R4", 4),
@@ -12,7 +10,7 @@ preDefinedSymbols = [("R0", 0), ("R1", 1), ("R2", 2), ("R3", 3), ("R4", 4),
                      ("R10", 10), ("R11", 11), ("R12", 12), ("R13", 13),
                      ("R14", 14), ("R15", 15), ("SCREEN", 16384), ("KBD", 24576),
                      ("SP", 0), ("LCL", 1), ("ARG", 2), ("THIS", 3), ("THAT", 4)]
-preDefinedMap = M.fromList preDefinedSymbols
+builtInSymbols = M.fromList preDefinedSymbols
 
 toBinaryStr :: Int -> String
 toBinaryStr x = showIntAtBase 2 intToDigit x ""
@@ -36,6 +34,12 @@ isAIns line = "@" `isPrefixOf` line
 isParen :: Char -> Bool
 isParen char = any (char ==) "()"
 
+isUserSymbol :: (M.Map String Int) -> (String, Int) -> Bool
+isUserSymbol symbols (line, idx)
+               | isAIns line = not $ M.member cleanline symbols
+               | otherwise = False
+             where cleanline = dropWhile ('@' ==) line
+
 labelP :: ReadP String
 labelP = do
   satisfy (== '(')
@@ -57,8 +61,8 @@ prepLines contents = zip cleanLines [1..]
 translateA :: (M.Map String Int) -> String -> String
 translateA labels line = case M.member cleanline labels of
                            True -> produceOutput $ labels M.! cleanline
-                           False -> case M.member cleanline preDefinedMap of
-                                      True -> produceOutput $ preDefinedMap M.! cleanline
+                           False -> case M.member cleanline builtInSymbols of
+                                      True -> produceOutput $ builtInSymbols M.! cleanline
                                       False -> "foo"
   where cleanline = dropWhile ('@' ==) line
         produceOutput = zeroPad . toBinaryStr
@@ -75,12 +79,28 @@ testRun = do
   let file = "Max.asm"
   contents <- readFile file
   let contentWithLineNums = prepLines contents
+
   let labels = M.fromList $
                -- the label refers to the following line in the asm script
                -- which is why there is a +1 on the line number
                map (\label -> (extractLabel (fst label), (+ 1) (snd label))) $
                filter isLabel contentWithLineNums
-  let output = map (translateLine labels) contentWithLineNums
+
+  -- combine labels and built in symbols
+  let labelsAndSymbols = M.union labels builtInSymbols
+
+  -- do another pass to find any user symbols which aren't labels
+  -- TODO: could combine label and user symbol pass into one when time allows
+  let userSymbols =
+        M.fromList $
+        (\xs -> zip xs [16..]) $ -- start at memory location 16 and assign slots to user symbols
+        nub $ -- remove dups, nub is quadratic but input should be small and this is for fun :)
+        map (\line -> dropWhile ('@' == ) (fst line)) $
+        filter (isUserSymbol labelsAndSymbols) contentWithLineNums
+
+  let finalSymbolLookup = M.union labelsAndSymbols userSymbols
+
+  let output = map (translateLine finalSymbolLookup) contentWithLineNums
   print output
 
 {-
