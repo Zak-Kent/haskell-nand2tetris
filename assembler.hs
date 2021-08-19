@@ -2,9 +2,11 @@ import qualified Data.Map as M -- this lets you reference all the things in Data
 import Numeric (showIntAtBase)
 import Data.Char (intToDigit, digitToInt, isSpace, isControl)
 import Data.List (foldl', isPrefixOf, dropWhileEnd, nub)
+import Data.Maybe
 import Text.ParserCombinators.ReadP
 import Text.Printf
 import Control.Applicative hiding (optional)
+import System.IO
 
 preDefinedSymbols = [("R0", 0), ("R1", 1), ("R2", 2), ("R3", 3), ("R4", 4),
                      ("R5", 5), ("R6", 6), ("R7", 7), ("R8", 8), ("R9", 9),
@@ -29,9 +31,6 @@ isLabel (line, idx) = "(" `isPrefixOf` line
 isComment :: String -> Bool
 isComment line = "//" `isPrefixOf` line
 
-isEmpty :: String -> Bool
-isEmpty = ("" ==)
-
 isAIns :: String -> Bool
 isAIns line = "@" `isPrefixOf` line
 
@@ -54,13 +53,6 @@ labelP = do
 extractLabel :: String -> String
 -- output of readP_to_S when parse successful: [("label123","")]
 extractLabel label = fst $ head $ readP_to_S labelP label
-
-prepLines :: String -> [(String, Int)]
-prepLines contents = zip cleanLines [1..]
-  where cleanLines = map (dropWhileEnd isControlOrSpace) $
-                     map (dropWhile isSpace) $
-                     lines contents
-        isControlOrSpace c = ((isControl c) || (isSpace c))
 
 {- C Intruction Parsing
    dest = comp ; jump (both dest and jump are optional)
@@ -145,21 +137,41 @@ translateC line = case parse of
 translateLine :: (M.Map String Int) -> (String, Int) -> Maybe String
 translateLine symbols (line, idx)
                 | isAIns line = Just (produceOutput $ symbols M.! cleanline)
-                | isComment line = Nothing
-                | isEmpty line = Nothing
                 | otherwise = translateC line
               where cleanline = dropWhile ('@' ==) line
                     produceOutput = zeroPad . toBinaryStr
+
+produceLineNums :: [String] -> [(String, Int)]
+produceLineNums lines = fst $ foldl numberLine ([], 0) lines
+
+numberLine :: ([(String, Int)], Int) -> String -> ([(String, Int)], Int)
+{- need to account for (label) declarations in the assembly code
+these labels should not count towards the line numbers in the final
+output. This function skips incrementing the line number when a label
+is seen. -}
+numberLine (result, currentLineNum) line =
+  case "(" `isPrefixOf` line of
+    True -> (result ++ [(line, currentLineNum)], currentLineNum)
+    False -> (result ++ [(line, currentLineNum)], currentLineNum + 1)
+
+prepLines :: String -> [(String, Int)]
+prepLines contents = produceLineNums cleanLines
+  where cleanLines = filter isNotCommentOrEmpty $
+                     map (dropWhileEnd isControlOrSpace) $
+                     map (dropWhile isSpace) $
+                     lines contents
+        isControlOrSpace c = ((isControl c) || (isSpace c))
+        isNotCommentOrEmpty l = not $ (isComment l || null l)
 
 testRun = do
   let file = "Max.asm"
   contents <- readFile file
   let contentWithLineNums = prepLines contents
-
+  print contentWithLineNums
   let labels = M.fromList $
                -- the label refers to the following line in the asm script
                -- which is why there is a +1 on the line number
-               map (\label -> (extractLabel (fst label), (+ 1) (snd label))) $
+               map (\label -> (extractLabel (fst label), (snd label))) $
                filter isLabel contentWithLineNums
 
   -- combine labels and built in symbols
