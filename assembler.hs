@@ -29,6 +29,9 @@ isLabel (line, idx) = "(" `isPrefixOf` line
 isComment :: String -> Bool
 isComment line = "//" `isPrefixOf` line
 
+isEmpty :: String -> Bool
+isEmpty = ("" ==)
+
 isAIns :: String -> Bool
 isAIns line = "@" `isPrefixOf` line
 
@@ -65,11 +68,10 @@ prepLines contents = zip cleanLines [1..]
    a value: determined by command type
 -}
 
-data CInstruction = CInstruction
-                    {dest :: Maybe String,
-                     comp :: String,
-                     jump :: Maybe String
-                    } deriving Show
+data CIns = CIns {dest :: Maybe String,
+                  comp :: String,
+                  jump :: Maybe String
+                 } deriving Show
 
 destP :: ReadP String
 destP = string "M" <|> string "D" <|> string "MD" <|> string "A" <|>
@@ -88,14 +90,14 @@ jumpP :: ReadP String
 jumpP = string "JGT" <|> string "JEQ" <|> string "JGE" <|> string "JLT" <|>
         string "JNE" <|> string "JLE" <|> string "JMP"
 
-cInstructionP :: ReadP CInstruction
+cInstructionP :: ReadP CIns
 cInstructionP = do
   dest <- option Nothing (fmap Just destP)
   option Nothing $ (fmap Just $ string "=")
   comp <- compP
   option Nothing $ (fmap Just $ string ";")
   jump <- option Nothing (fmap Just jumpP)
-  return (CInstruction dest comp jump)
+  return (CIns dest comp jump)
 
 destIns :: (M.Map String String)
 destIns = M.fromList [("M", "001"), ("D", "010"), ("MD", "011"), ("A", "100"),
@@ -121,13 +123,30 @@ jumpIns :: (M.Map String String)
 jumpIns = M.fromList [("JGT", "001"), ("JEQ", "010"), ("JGE", "011"), ("JLT", "100"), ("JNE", "101"),
                       ("JLE", "110"), ("JMP", "111")]
 
+lookupIns :: (M.Map String String) -> Maybe String -> String
+lookupIns _ Nothing = "000"
+lookupIns m (Just k) = m M.! k
+
+cleanC :: CIns -> String
+cleanC (CIns { dest = d, comp = c, jump = j }) =
+   -- Ins format: 111 a c1 c2 c3 c4 c5 c6 d1 d2 d3 j1 j2 j3
+  "111" ++ abit ++ cbits ++ dbits ++ jbits
+  where (cbits, abit) = compIns M.! c
+        dbits = lookupIns destIns d
+        jbits = lookupIns jumpIns j
+
 translateC :: String -> Maybe String
-translateC line = Just "C instruction"
+translateC line = case parse of
+  [] -> Nothing
+  (x:xs) -> Just $ cleanC $ fst x
+  -- most complete parse is at end of readP_to_S output, see reverse below
+  where parse = (reverse $ readP_to_S cInstructionP line)
 
 translateLine :: (M.Map String Int) -> (String, Int) -> Maybe String
 translateLine symbols (line, idx)
                 | isAIns line = Just (produceOutput $ symbols M.! cleanline)
                 | isComment line = Nothing
+                | isEmpty line = Nothing
                 | otherwise = translateC line
               where cleanline = dropWhile ('@' ==) line
                     produceOutput = zeroPad . toBinaryStr
