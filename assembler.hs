@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiWayIf #-}
 import qualified Data.Map as M -- this lets you reference all the things in Data.map with M.<name>
 import Numeric (showIntAtBase)
 import Data.Char (intToDigit, digitToInt, isSpace, isControl)
@@ -8,6 +9,7 @@ import Text.Printf
 import Text.Read
 import Control.Applicative hiding (optional)
 import System.IO
+import qualified Control.Monad.State as S
 
 preDefinedSymbols = [("R0", 0), ("R1", 1), ("R2", 2), ("R3", 3), ("R4", 4),
                      ("R5", 5), ("R6", 6), ("R7", 7), ("R8", 8), ("R9", 9),
@@ -149,24 +151,32 @@ handleLiteralInt sym =
     Just s -> Just (sym, s)
     Nothing -> Nothing
 
-buildLabelsLitIntsLookup :: [String] -> M.Map String Int
--- ["(label)", "@54", "@var", "D=M"] -> M.fromList [("label", <next line num>), ("54", 54)]
-buildLabelsLitIntsLookup lines = M.fromList $ fst $ foldl exractLabelsAndLitInts ([], 0) lines
+type Lookup = M.Map String Int
+type Labels = Lookup
+type Symbols = Lookup
+type LineNum = Int
+type SymbolLookupState = (Labels, Symbols, LineNum)
 
-exractLabelsAndLitInts :: ([(String, Int)], Int) -> String -> ([(String, Int)], Int)
-{- need to account for (label) declarations in the assembly code.
-These labels should not count towards the line numbers in the final
-output. This function skips incrementing the line number when a label
-is seen. -}
-exractLabelsAndLitInts (result, lineNum) line
-  | isLabel line = (result ++ [(extractLabel line, lineNum)], lineNum)
-  | isJust $ litIntParse = (result ++ [fromJust litIntParse], lineNum + 1)
-  | otherwise = (result, lineNum + 1)
+insert' :: (String, Int) -> M.Map String Int -> M.Map String Int
+insert' (line, idx) m = M.insert line idx m
+
+extractLabelsLitInts :: String -> S.State SymbolLookupState SymbolLookupState
+extractLabelsLitInts line = do
+  (labels, symbols, lineNum) <- S.get
+  if
+    | isLabel line -> S.put (insert' (extractLabel line, lineNum) labels, symbols, lineNum)
+    | isJust $ litIntParse -> S.put (labels, insert' (fromJust litIntParse) symbols, lineNum + 1)
+    | otherwise -> S.put (labels, symbols, lineNum + 1)
+  return (labels, symbols, lineNum)
   where litIntParse = handleLiteralInt $ dropWhile ('@' ==) line
+
+buildLabelsLitInts :: [String] -> M.Map String Int
+buildLabelsLitInts lines = M.union labels symbols
+  where (labels, symbols, _ ) = S.execState (mapM extractLabelsLitInts lines) (M.empty, M.empty, 0)
 
 buildSymbolLookup :: [String] -> M.Map String Int
 buildSymbolLookup lines = M.union labelsAndSymbols userSymbols
-  where labelsAndSymbols = M.union builtInSymbols $ buildLabelsLitIntsLookup lines
+  where labelsAndSymbols = M.union builtInSymbols $ buildLabelsLitInts lines
         userSymbols = M.fromList $
                       (\xs -> zip xs [16..]) $ -- start at memory location 16 and assign slots to user symbols
                       nub $ -- remove dups, nub is quadratic but input should be small and this is for fun :)
