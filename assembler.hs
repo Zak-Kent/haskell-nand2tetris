@@ -5,6 +5,7 @@ import Data.List (foldl', isPrefixOf, dropWhileEnd, nub)
 import Data.Maybe
 import Text.ParserCombinators.ReadP
 import Text.Printf
+import Text.Read
 import Control.Applicative hiding (optional)
 import System.IO
 
@@ -25,24 +26,6 @@ toDec = foldl' (\acc x -> acc * 2 + digitToInt x) 0
 zeroPad :: String -> String
 zeroPad x = printf "%016s" x
 
-isLabel :: (String, Int) -> Bool
-isLabel (line, idx) = "(" `isPrefixOf` line
-
-isComment :: String -> Bool
-isComment line = "//" `isPrefixOf` line
-
-isAIns :: String -> Bool
-isAIns line = "@" `isPrefixOf` line
-
-isParen :: Char -> Bool
-isParen char = any (char ==) "()"
-
-isUserSymbol :: (M.Map String Int) -> (String, Int) -> Bool
-isUserSymbol symbols (line, idx)
-               | isAIns line = not $ M.member cleanline symbols
-               | otherwise = False
-             where cleanline = dropWhile ('@' ==) line
-
 labelP :: ReadP String
 labelP = do
   satisfy (== '(')
@@ -54,12 +37,29 @@ extractLabel :: String -> String
 -- output of readP_to_S when parse successful: [("label123","")]
 extractLabel label = fst $ head $ readP_to_S labelP label
 
+isLabel :: String -> Bool
+isLabel = isPrefixOf "("
+
+isComment :: String -> Bool
+isComment line = "//" `isPrefixOf` line
+
+isAIns :: String -> Bool
+isAIns line = "@" `isPrefixOf` line
+
+isParen :: Char -> Bool
+isParen char = any (char ==) "()"
+
+isUserSymbol :: (M.Map String Int) -> String -> Bool
+isUserSymbol symbols line
+               | isAIns line = not $ M.member cleanline symbols
+               | otherwise = False
+             where cleanline = dropWhile ('@' ==) line
+
 {- C Intruction Parsing
    dest = comp ; jump (both dest and jump are optional)
    binary: 111 a c1 c2 c3 c4 c5 c6 d1 d2 d3 j1 j2 j3
    a value: determined by command type
 -}
-
 data CIns = CIns {dest :: Maybe String,
                   comp :: String,
                   jump :: Maybe String
@@ -134,28 +134,47 @@ translateC line = case parse of
   -- most complete parse is at end of readP_to_S output, see reverse below
   where parse = (reverse $ readP_to_S cInstructionP line)
 
-translateLine :: (M.Map String Int) -> (String, Int) -> Maybe String
-translateLine symbols (line, idx)
+translateLine :: (M.Map String Int) -> String -> Maybe String
+translateLine symbols line
                 | isAIns line = Just (produceOutput $ symbols M.! cleanline)
                 | otherwise = translateC line
               where cleanline = dropWhile ('@' ==) line
                     produceOutput = zeroPad . toBinaryStr
 
-produceLineNums :: [String] -> [(String, Int)]
-produceLineNums lines = fst $ foldl numberLine ([], 0) lines
+handleLiteralInt :: String -> Maybe (String, Int)
+-- account for the case where an A instruction is an integer value
+-- ex. @32 should produce a ("32", 32) entry in the lookup map
+handleLiteralInt sym =
+  case readMaybe sym :: Maybe Int of
+    Just s -> Just (sym, s)
+    Nothing -> Nothing
 
-numberLine :: ([(String, Int)], Int) -> String -> ([(String, Int)], Int)
-{- need to account for (label) declarations in the assembly code
-these labels should not count towards the line numbers in the final
+buildLabelsLitIntsLookup :: [String] -> M.Map String Int
+-- ["(label)", "@54", "@var", "D=M"] -> M.fromList [("label", <next line num>), ("54", 54)]
+buildLabelsLitIntsLookup lines = M.fromList $ fst $ foldl exractLabelsAndLitInts ([], 0) lines
+
+exractLabelsAndLitInts :: ([(String, Int)], Int) -> String -> ([(String, Int)], Int)
+{- need to account for (label) declarations in the assembly code.
+These labels should not count towards the line numbers in the final
 output. This function skips incrementing the line number when a label
 is seen. -}
-numberLine (result, currentLineNum) line =
-  case "(" `isPrefixOf` line of
-    True -> (result ++ [(line, currentLineNum)], currentLineNum)
-    False -> (result ++ [(line, currentLineNum)], currentLineNum + 1)
+exractLabelsAndLitInts (result, lineNum) line
+  | isLabel line = (result ++ [(extractLabel line, lineNum)], lineNum)
+  | isJust $ litIntParse = (result ++ [fromJust litIntParse], lineNum + 1)
+  | otherwise = (result, lineNum + 1)
+  where litIntParse = handleLiteralInt $ dropWhile ('@' ==) line
 
-prepLines :: String -> [(String, Int)]
-prepLines contents = produceLineNums cleanLines
+buildSymbolLookup :: [String] -> M.Map String Int
+buildSymbolLookup lines = M.union labelsAndSymbols userSymbols
+  where labelsAndSymbols = M.union builtInSymbols $ buildLabelsLitIntsLookup lines
+        userSymbols = M.fromList $
+                      (\xs -> zip xs [16..]) $ -- start at memory location 16 and assign slots to user symbols
+                      nub $ -- remove dups, nub is quadratic but input should be small and this is for fun :)
+                      map (\line -> dropWhile ('@' == ) line) $
+                      filter (isUserSymbol labelsAndSymbols) lines
+
+prepLines :: String -> [String]
+prepLines contents = cleanLines
   where cleanLines = filter isNotCommentOrEmpty $
                      map (dropWhileEnd isControlOrSpace) $
                      map (dropWhile isSpace) $
@@ -164,49 +183,14 @@ prepLines contents = produceLineNums cleanLines
         isNotCommentOrEmpty l = not $ (isComment l || null l)
 
 testRun = do
-  let file = "Max.asm"
+  let file = "Add.asm"
   contents <- readFile file
-  let contentWithLineNums = prepLines contents
-  print contentWithLineNums
-  let labels = M.fromList $
-               -- the label refers to the following line in the asm script
-               -- which is why there is a +1 on the line number
-               map (\label -> (extractLabel (fst label), (snd label))) $
-               filter isLabel contentWithLineNums
 
-  -- combine labels and built in symbols
-  let labelsAndSymbols = M.union labels builtInSymbols
+  let cleanedLines = prepLines contents
+  let finalSymbolLookup = buildSymbolLookup cleanedLines
 
-  -- do another pass to find any user symbols which aren't labels
-  -- TODO: could combine label and user symbol pass into one when time allows
-  let userSymbols =
-        M.fromList $
-        (\xs -> zip xs [16..]) $ -- start at memory location 16 and assign slots to user symbols
-        nub $ -- remove dups, nub is quadratic but input should be small and this is for fun :)
-        map (\line -> dropWhile ('@' == ) (fst line)) $
-        filter (isUserSymbol labelsAndSymbols) contentWithLineNums
+  let output = unlines $ catMaybes $ map (translateLine finalSymbolLookup) cleanedLines
 
-  let finalSymbolLookup = M.union labelsAndSymbols userSymbols
-
-  let output = map (translateLine finalSymbolLookup) contentWithLineNums
-  print output
-
-{-
-1. you need to map over all the lines in contents and first decide if line is A vs. C instruction
-2. need to make a lookup map for C instruction translations, if C then translate
-3. if A instruction:
-    - check label map for match:
-        - if match then replace instuction with converted binary string value for label
-        - if no match move to next check
-
-    - check predefined symbol for match:
-        - if match then replace instuction with converted binary string value for symbol
-        - if no match add symbol and assign memory location value that's next in line starting at 16
-        - ^^ will need to check the map or keep track of how many memory slots have been handed out
-        - write binary string value for newly added symbol
-
-?? how does this tell the difference between the memory location and a location in the script?
-^^ I think the next instruciton probably figures that out the A register can be set to 17
-which could match either line 17 in the script or register 17 and the PC probably jumps in one
-case and not the other
--}
+  outy <- openFile "Add.hack" WriteMode
+  hPutStrLn outy output
+  hClose outy
