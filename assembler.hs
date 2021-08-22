@@ -24,7 +24,7 @@ toDec = foldl' (\acc x -> acc * 2 + digitToInt x) 0
 
 -- zeroPad binary strings with extra zeros
 zeroPad :: String -> String
-zeroPad x = printf "%016s" x
+zeroPad = printf "%016s"
 
 labelP :: ReadP String
 labelP = do
@@ -41,10 +41,10 @@ isLabel :: String -> Bool
 isLabel = isPrefixOf "("
 
 isComment :: String -> Bool
-isComment line = "//" `isPrefixOf` line
+isComment = isPrefixOf "//"
 
 isAIns :: String -> Bool
-isAIns line = "@" `isPrefixOf` line
+isAIns = isPrefixOf "@"
 
 isParen :: Char -> Bool
 isParen char = any (char ==) "()"
@@ -119,8 +119,8 @@ lookupIns :: (M.Map String String) -> Maybe String -> String
 lookupIns _ Nothing = "000"
 lookupIns m (Just k) = m M.! k
 
-cleanC :: CIns -> String
-cleanC (CIns { dest = d, comp = c, jump = j }) =
+procuceCBits :: CIns -> String
+procuceCBits (CIns { dest = d, comp = c, jump = j }) =
    -- Ins format: 111 a c1 c2 c3 c4 c5 c6 d1 d2 d3 j1 j2 j3
   "111" ++ abit ++ cbits ++ dbits ++ jbits
   where (cbits, abit) = compIns M.! c
@@ -130,7 +130,7 @@ cleanC (CIns { dest = d, comp = c, jump = j }) =
 translateC :: String -> Maybe String
 translateC line = case parse of
   [] -> Nothing
-  (x:xs) -> Just $ cleanC $ fst x
+  (x:xs) -> Just $ procuceCBits $ fst x
   -- most complete parse is at end of readP_to_S output, see reverse below
   where parse = (reverse $ readP_to_S cInstructionP line)
 
@@ -183,7 +183,7 @@ prepLines contents = cleanLines
         isNotCommentOrEmpty l = not $ (isComment l || null l)
 
 testRun = do
-  let file = "Add.asm"
+  let file = "Pong.asm"
   contents <- readFile file
 
   let cleanedLines = prepLines contents
@@ -191,6 +191,6 @@ testRun = do
 
   let output = unlines $ catMaybes $ map (translateLine finalSymbolLookup) cleanedLines
 
-  outy <- openFile "Add.hack" WriteMode
+  outy <- openFile "Pong.hack" WriteMode
   hPutStrLn outy output
   hClose outy
