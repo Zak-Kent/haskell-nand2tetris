@@ -4,7 +4,9 @@ import Data.Char (isSpace)
 
 data Command = Arithmetic String | Push | Pop
              deriving (Show)
-data MemSegment = Local | Argument | This | That | Constant | Static | Temp | Pointer
+data MemSegment = Local Integer | Argument Integer | This Integer
+                | That Integer | Constant | Static Integer
+                | Temp Integer | Pointer Integer
                 deriving (Show)
 type Index = Integer
 
@@ -32,14 +34,14 @@ arithmeticP = do
 
 toMemSegment :: String -> MemSegment
 toMemSegment seg = case seg of
-                     "local" -> Local
-                     "argument" -> Argument
-                     "this" -> This
-                     "that" -> That
+                     "local" -> Local 1
+                     "argument" -> Argument 2
+                     "this" -> This 3
+                     "that" -> That 4
                      "constant" -> Constant
-                     "static" -> Static
-                     "temp" -> Temp
-                     "pointer" -> Pointer
+                     "static" -> Static 16
+                     "temp" -> Temp 5
+                     "pointer" -> Pointer 3
 
 memSegmentP :: ReadP MemSegment
 memSegmentP = do
@@ -67,3 +69,28 @@ lineP :: ReadP Line
 lineP = do
   line <- arithmeticP <|> pushPopP
   return line
+
+-- VM -> hack assembly
+
+incSP :: [String]
+incSP = ["@SP // SP++", "M=M+1"]
+
+decSP :: [String]
+decSP = ["@SP // SP--", "M=M-1"]
+
+pushVal :: [String]
+-- assumes value to push on stack is in reg D
+pushVal = ["@SP // *SP=D", "A=M", "M=D"]
+
+addressMemSeg :: Line -> [String]
+addressMemSeg (Line {memSegment = Just m, index = Just i}) =
+  case m of
+    Local b -> addr b
+    Argument b -> addr b
+    This b -> addr b
+    That b -> addr b
+    Constant -> ["@" ++ show i]
+    Static b -> addr b
+    Temp b -> addr b
+    Pointer b -> addr b
+  where addr = (\b -> ["@" ++ show (b + i)])
