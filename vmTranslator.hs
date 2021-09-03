@@ -2,11 +2,6 @@ import Text.ParserCombinators.ReadP
 import Control.Applicative hiding (optional)
 import Data.Char (isSpace)
 
--- TODO: will need to break this out into seperate files later on
-
-
--- VM language parser
-
 data Command = Arithmetic String | Push | Pop
              deriving (Show)
 data MemSegment = Local | Argument | This | That | Constant | Static | Temp | Pointer
@@ -14,8 +9,8 @@ data MemSegment = Local | Argument | This | That | Constant | Static | Temp | Po
 type Index = Integer
 
 data Line = Line { command :: Command,
-                   memSegment :: MemSegment,
-                   index :: Index
+                   memSegment :: Maybe MemSegment,
+                   index :: Maybe Index
                  } deriving (Show)
 
 pushP :: ReadP Command
@@ -30,10 +25,10 @@ popP = do
 
 arithmeticP :: ReadP Command
 arithmeticP = do
-  art <- string "add" <|> string "sub" <|> string "neg" <|> string "eq" <|>
-         string "gt" <|> string "lt" <|> string "and" <|> string "or" <|>
-         string "not"
-  return $ Arithmetic art
+  arith <- string "add" <|> string "sub" <|> string "neg" <|> string "eq" <|>
+           string "gt" <|> string "lt" <|> string "and" <|> string "or" <|>
+           string "not"
+  return $ Arithmetic arith
 
 toMemSegment :: String -> MemSegment
 toMemSegment seg = case seg of
@@ -62,8 +57,8 @@ indexP = fmap read $ munch1 isDigit
 lineP :: ReadP Line
 lineP = do
   cmd <- popP <|> pushP <|> arithmeticP
-  satisfy isSpace
-  memSeg <- memSegmentP
-  satisfy isSpace
-  idx <- indexP
+  option Nothing $ fmap Just $ satisfy isSpace
+  memSeg <- option Nothing $ fmap Just memSegmentP
+  option Nothing $ fmap Just $ satisfy isSpace
+  idx <- option Nothing $ fmap Just indexP
   return (Line cmd memSeg idx)
