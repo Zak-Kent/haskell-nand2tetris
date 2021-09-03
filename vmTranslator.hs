@@ -23,12 +23,12 @@ popP = do
   string "pop"
   return Pop
 
-arithmeticP :: ReadP Command
+arithmeticP :: ReadP Line
 arithmeticP = do
   arith <- string "add" <|> string "sub" <|> string "neg" <|> string "eq" <|>
            string "gt" <|> string "lt" <|> string "and" <|> string "or" <|>
            string "not"
-  return $ Arithmetic arith
+  return (Line (Arithmetic arith) Nothing Nothing)
 
 toMemSegment :: String -> MemSegment
 toMemSegment seg = case seg of
@@ -54,11 +54,16 @@ isDigit c = c >= '0' && c <= '9'
 indexP :: ReadP Index
 indexP = fmap read $ munch1 isDigit
 
+pushPopP :: ReadP Line
+pushPopP = do
+  cmd <- popP <|> pushP
+  satisfy isSpace
+  memSeg <- fmap Just memSegmentP
+  satisfy isSpace
+  idx <- fmap Just indexP
+  return (Line cmd memSeg idx)
+
 lineP :: ReadP Line
 lineP = do
-  cmd <- popP <|> pushP <|> arithmeticP
-  option Nothing $ fmap Just $ satisfy isSpace
-  memSeg <- option Nothing $ fmap Just memSegmentP
-  option Nothing $ fmap Just $ satisfy isSpace
-  idx <- option Nothing $ fmap Just indexP
-  return (Line cmd memSeg idx)
+  line <- arithmeticP <|> pushPopP
+  return line
