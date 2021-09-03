@@ -78,10 +78,6 @@ incSP = ["@SP // SP++", "M=M+1"]
 decSP :: [String]
 decSP = ["@SP // SP--", "M=M-1"]
 
-pushVal :: [String]
--- assumes value to push on stack is in reg D
-pushVal = ["@SP // *SP=D", "A=M", "M=D"]
-
 addressMemSeg :: Line -> [String]
 addressMemSeg (Line {memSegment = Just m, index = Just i}) =
   case m of
@@ -94,3 +90,28 @@ addressMemSeg (Line {memSegment = Just m, index = Just i}) =
     Temp b -> addr b
     Pointer b -> addr b
   where addr = (\b -> ["@" ++ show (b + i)])
+
+setDRegWA :: [String]
+setDRegWA = ["D=A"]
+
+setMRegWD :: [String]
+setMRegWD = ["M=D"]
+
+setDRegWM :: [String]
+setDRegWM = ["D=M"]
+
+addressMReg :: [String]
+addressMReg = ["A=M"]
+
+pushVal :: [String]
+-- assumes value to push on stack is in reg D
+pushVal = ["@SP // *SP=D", "A=M", "M=D"]
+
+translateLine :: Line -> [String]
+translateLine line@(Line {command = c}) =
+  case c of
+    Push -> ["// push val"] ++ addressMemSeg line ++ setDRegWA ++ pushVal ++ incSP
+    Pop -> ["// pop val"] ++ decSP ++ addressMReg ++ setDRegWM ++ addressMemSeg line
+           ++ addressMReg ++ setMRegWD
+    Arithmetic c -> ["arith"]
+
