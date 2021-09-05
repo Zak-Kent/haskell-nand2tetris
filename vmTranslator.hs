@@ -78,6 +78,9 @@ incSP = ["@SP // SP++", "M=M+1"]
 decSP :: [String]
 decSP = ["@SP // SP--", "M=M-1"]
 
+addressTopStack :: [String]
+addressTopStack = ["@SP", "A=M-1"]
+
 addressMemSeg :: Line -> [String]
 addressMemSeg (Line {memSegment = Just m, index = Just i}) =
   case m of
@@ -107,11 +110,57 @@ pushVal :: [String]
 -- assumes value to push on stack is in reg D
 pushVal = ["@SP // *SP=D", "A=M", "M=D"]
 
+-- Arithmetic commands
+twoArgBase :: [String]
+{- address top val & dec SP, set D to top val, address 2nd val.
+   Run any following commands using D and value at M: ex. M=M+D
+   storing the result in M which is the slot at the top of stack -}
+twoArgBase = ["@SP", "AM=M-1", "D=M", "A=A-1"]
+
+compBase :: String -> [String]
+{- compare top two values on stack depending on result
+   jump to appropriate label and store Bool result back
+   on stack
+-}
+-- TODO fix bug below with duplicate labels, you'll need to make
+-- each label unique so that they don't clobber eack other if there
+-- are mulitple comp commands in the vm code. You could do this with
+-- the state monad
+compBase c = twoArgBase ++
+             ["D=M-D",
+              "@FALSE",
+              ("D;" ++ c),
+              "@SP",
+              "A=M-1",
+              "M=-1 // set top val to true, all 1s",
+              "@CONT",
+              "0;JMP",
+              "(FALSE)",
+              "@SP",
+              "A=M-1",
+              "M=0 // set top val to false, all 0s",
+              "(CONT)"]
+
+translateArithmetic :: Command -> [String]
+translateArithmetic (Arithmetic c) = case c of
+  "add" -> twoArgBase ++ ["M=M+D"]
+  "sub" -> twoArgBase ++ ["M=M-D"]
+  "and" -> twoArgBase ++ ["M=M&D"]
+  "or"  -> twoArgBase ++ ["M=M|D"]
+  "eq"  -> compBase "JNE"
+  "gt"  -> compBase "JLE"
+  "lt"  -> compBase "JGE"
+  "not" -> addressTopStack ++ ["M=!M"]
+  "neg" -> ["D=0"] ++ addressTopStack ++ ["M=D-M"]
+
 translateLine :: Line -> [String]
-translateLine line@(Line {command = c}) =
-  case c of
+translateLine line@(Line {command = c}) = case c of
     Push -> ["// push val"] ++ addressMemSeg line ++ setDRegWA ++ pushVal ++ incSP
+    -- need to account for the fact that static, temp, pointer can be imlemented with a static base address
+    -- but the other registers need to look up the address in the memory slot and then set that which means
+    -- you'll need to have a condional here that knows how to deal with the diff memsegments. The impl
+    -- below assumes you can address all the values with a static address
     Pop -> ["// pop val"] ++ decSP ++ addressMReg ++ setDRegWM ++ addressMemSeg line
            ++ addressMReg ++ setMRegWD
-    Arithmetic c -> ["arith"]
+    Arithmetic _ -> translateArithmetic c
 
