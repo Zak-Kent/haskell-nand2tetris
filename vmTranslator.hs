@@ -1,6 +1,9 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+
 import Text.ParserCombinators.ReadP
 import Control.Applicative hiding (optional)
 import Data.Char (isSpace)
+import System.Console.CmdArgs
 
 data Command = Arithmetic String | Push | Pop
              deriving (Show)
@@ -164,3 +167,18 @@ translateLine line@(Line {command = c}) = case c of
            ++ addressMReg ++ setMRegWD
     Arithmetic _ -> translateArithmetic c
 
+data VMTranslatorArgs = VMTranslatorArgs {
+  src :: FilePath
+  ,dst :: FilePath
+  } deriving (Data,Typeable,Show)
+
+options :: VMTranslatorArgs
+options = VMTranslatorArgs {
+  src = "abc.txt" &= help "path to input Hack VM file"
+  ,dst = "dst.asm" &= help "path where translated assembly will be saved"
+  } &= program "VM -> assembly translator"
+
+main :: IO ()
+main = do
+  args <- cmdArgs options
+  putStrLn $ show args
