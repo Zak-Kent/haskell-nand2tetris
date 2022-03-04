@@ -4,6 +4,7 @@ import Text.ParserCombinators.ReadP
 import Control.Applicative hiding (optional)
 import Data.Char (isSpace)
 import System.Console.CmdArgs
+import System.IO
 
 data Command = Arithmetic String | Push | Pop
              deriving (Show)
@@ -72,6 +73,11 @@ lineP :: ReadP Line
 lineP = do
   line <- arithmeticP <|> pushPopP
   return line
+
+parseLines :: [String] -> [Line]
+-- TODO figure out if you should avoid using head below, it throws on []
+-- type of 'map readP_toS lines' :: [[(Line, String)]]
+parseLines lines = map (\x -> fst $ head x) $ map (readP_to_S lineP) lines
 
 -- VM -> hack assembly
 
@@ -167,6 +173,9 @@ translateLine line@(Line {command = c}) = case c of
            ++ addressMReg ++ setMRegWD
     Arithmetic _ -> translateArithmetic c
 
+translateFile :: [Line] -> String
+translateFile lines = unlines $ concat $ map translateLine lines
+
 data VMTranslatorArgs = VMTranslatorArgs {
   src :: FilePath
   ,dst :: FilePath
@@ -181,4 +190,12 @@ options = VMTranslatorArgs {
 main :: IO ()
 main = do
   args <- cmdArgs options
-  putStrLn $ show args
+  let srcFile = src args
+      dstFile = dst args
+
+  contents <- fmap lines $ readFile srcFile
+  let output = translateFile $ parseLines contents
+
+  outFile <- openFile dstFile WriteMode
+  hPutStrLn outFile output
+  hClose outFile
