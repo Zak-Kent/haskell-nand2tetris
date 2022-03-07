@@ -2,9 +2,10 @@
 
 import Text.ParserCombinators.ReadP
 import Control.Applicative hiding (optional)
-import Data.Char (isSpace)
-import System.Console.CmdArgs
+import Data.Char (isSpace, isAlpha)
+-- import System.Console.CmdArgs
 import System.IO
+import System.Environment
 
 data Command = Arithmetic String | Push | Pop
              deriving (Show)
@@ -174,24 +175,33 @@ translateLine line@(Line {command = c}) = case c of
     Arithmetic _ -> translateArithmetic c
 
 translateFile :: [Line] -> String
-translateFile lines = unlines $ concat $ map translateLine lines
+translateFile l = unlines $ concat $ map translateLine l
 
-data VMTranslatorArgs = VMTranslatorArgs {
-  src :: FilePath
-  ,dst :: FilePath
-  } deriving (Data,Typeable,Show)
+-- data VMTranslatorArgs = VMTranslatorArgs {
+--   src :: FilePath
+--   ,dst :: FilePath
+--   } deriving (Data,Typeable,Show)
 
-options :: VMTranslatorArgs
-options = VMTranslatorArgs {
-  src = "abc.txt" &= help "path to input Hack VM file"
-  ,dst = "dst.asm" &= help "path where translated assembly will be saved"
-  } &= program "VM -> assembly translator"
+-- options :: VMTranslatorArgs
+-- options = VMTranslatorArgs {
+--   src = "abc.txt" &= help "path to input Hack VM file"
+--   ,dst = "dst.asm" &= help "path where translated assembly will be saved"
+--   } &= program "VM -> assembly translator"
+
+parseFileName :: ReadP String
+parseFileName = do
+  fileName <- many1 (satisfy (\ch -> isAlpha ch && ch /= '.'))
+  return fileName
 
 main :: IO ()
 main = do
-  args <- cmdArgs options
-  let srcFile = src args
-      dstFile = dst args
+  -- args <- cmdArgs options
+  -- let srcFile = src args
+  --     dstFile = dst args
+
+  args <- getArgs
+  let srcFile = head args
+      dstFile = (fst $ last $ readP_to_S parseFileName $ srcFile) ++ ".asm"
 
   contents <- fmap lines $ readFile srcFile
   let output = translateFile $ parseLines contents
