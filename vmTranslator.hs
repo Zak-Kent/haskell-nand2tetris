@@ -127,6 +127,13 @@ pushVal :: [String]
 -- assumes value to push on stack is in reg D
 pushVal = ["@SP // *SP=D", "A=M", "M=D"]
 
+pointerOrLit :: Line -> [String]
+pointerOrLit (Line {memSegment = Just m}) =
+  {- if pushing val from Constant use val in A, otherwise use val in M -}
+  case m of
+    Constant -> setDRegWA
+    _ -> setDRegWM
+
 -- Arithmetic commands
 twoArgBase :: [String]
 {- address top val & dec SP, set D to top val, address 2nd val.
@@ -181,7 +188,7 @@ translateLine line@(Line {command = c}) = case c of
     Push -> return (["// push val"] ++ addressMemSeg line
                    -- TODO need a branch here maybe. If pushing a constant you want the value from A
                    -- if pushing from a mem seg you want the value at the mem location
-                    ++ setDRegWA ++ pushVal ++ incSP)
+                    ++ pointerOrLit line ++ pushVal ++ incSP)
     -- need to account for the fact that static, temp, pointer can be imlemented with a static base address
     -- but the other registers need to look up the address in the memory slot and then set that which means
     -- you'll need to have a condional here that knows how to deal with the diff memsegments. The impl
