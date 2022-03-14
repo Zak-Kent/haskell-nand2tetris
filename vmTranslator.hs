@@ -2,10 +2,14 @@
 
 import Text.ParserCombinators.ReadP
 import Control.Applicative hiding (optional)
+import qualified Control.Monad.State as S
 import Data.Char (isSpace, isAlpha)
 -- import System.Console.CmdArgs
+import Data.Maybe
 import System.IO
 import System.Environment
+import Text.Printf
+import System.FilePath.Posix(replaceExtensions)
 
 data Command = Arithmetic String | Push | Pop
              deriving (Show)
@@ -75,10 +79,13 @@ lineP = do
   line <- arithmeticP <|> pushPopP
   return line
 
+checkParse :: [(a, b)] -> Maybe a
+checkParse [] = Nothing
+checkParse (x:_) = Just (fst x)
+
 parseLines :: [String] -> [Line]
--- TODO figure out if you should avoid using head below, it throws on []
 -- type of 'map readP_toS lines' :: [[(Line, String)]]
-parseLines lines = map (\x -> fst $ head x) $ map (readP_to_S lineP) lines
+parseLines l = catMaybes $ map checkParse $ map (readP_to_S lineP) l
 
 -- VM -> hack assembly
 
@@ -127,55 +134,65 @@ twoArgBase :: [String]
    storing the result in M which is the slot at the top of stack -}
 twoArgBase = ["@SP", "AM=M-1", "D=M", "A=A-1"]
 
-compBase :: String -> [String]
+type LabelCount = Int
+type LabelCountState = S.State LabelCount
+
+compBase :: String -> LabelCountState [String]
 {- compare top two values on stack depending on result
    jump to appropriate label and store Bool result back
    on stack
 -}
--- TODO fix bug below with duplicate labels, you'll need to make
--- each label unique so that they don't clobber eack other if there
--- are mulitple comp commands in the vm code. You could do this with
--- the state monad
-compBase c = twoArgBase ++
+compBase c = do
+  callCount <- S.get
+  S.put (callCount + 1)
+  return (twoArgBase ++
              ["D=M-D",
-              "@FALSE",
+              printf "@FALSE%d" callCount,
               ("D;" ++ c),
               "@SP",
               "A=M-1",
               "M=-1 // set top val to true, all 1s",
-              "@CONT",
+              printf "@CONT%d" callCount,
               "0;JMP",
-              "(FALSE)",
+              printf "(FALSE%d)" callCount,
               "@SP",
               "A=M-1",
               "M=0 // set top val to false, all 0s",
-              "(CONT)"]
+              printf "(CONT%d)" callCount])
 
-translateArithmetic :: Command -> [String]
+translateArithmetic :: Command -> LabelCountState [String]
 translateArithmetic (Arithmetic c) = case c of
-  "add" -> twoArgBase ++ ["M=M+D"]
-  "sub" -> twoArgBase ++ ["M=M-D"]
-  "and" -> twoArgBase ++ ["M=M&D"]
-  "or"  -> twoArgBase ++ ["M=M|D"]
+  "add" -> return (twoArgBase ++ ["M=M+D"])
+  "sub" -> return (twoArgBase ++ ["M=M-D"])
+  "and" -> return (twoArgBase ++ ["M=M&D"])
+  "or"  -> return (twoArgBase ++ ["M=M|D"])
   "eq"  -> compBase "JNE"
   "gt"  -> compBase "JLE"
   "lt"  -> compBase "JGE"
-  "not" -> addressTopStack ++ ["M=!M"]
-  "neg" -> ["D=0"] ++ addressTopStack ++ ["M=D-M"]
+  "not" -> return (addressTopStack ++ ["M=!M"])
+  "neg" -> return (["D=0"] ++ addressTopStack ++ ["M=D-M"])
+translateArithmetic _ = return ["should never happen"]
 
-translateLine :: Line -> [String]
+endProg :: [String]
+endProg = ["(end)", "@end", "0;JMP"]
+
+translateLine :: Line -> LabelCountState [String]
 translateLine line@(Line {command = c}) = case c of
-    Push -> ["// push val"] ++ addressMemSeg line ++ setDRegWA ++ pushVal ++ incSP
+    Push -> return (["// push val"] ++ addressMemSeg line
+                   -- TODO need a branch here maybe. If pushing a constant you want the value from A
+                   -- if pushing from a mem seg you want the value at the mem location
+                    ++ setDRegWA ++ pushVal ++ incSP)
     -- need to account for the fact that static, temp, pointer can be imlemented with a static base address
     -- but the other registers need to look up the address in the memory slot and then set that which means
     -- you'll need to have a condional here that knows how to deal with the diff memsegments. The impl
     -- below assumes you can address all the values with a static address
-    Pop -> ["// pop val"] ++ decSP ++ addressMReg ++ setDRegWM ++ addressMemSeg line
-           ++ addressMReg ++ setMRegWD
+    Pop -> return (["// pop val"] ++ decSP ++ addressMReg
+                   ++ setDRegWM ++ addressMemSeg line ++ setMRegWD)
     Arithmetic _ -> translateArithmetic c
 
+  -- where outy = S.evalState (mapM funky l) 0
 translateFile :: [Line] -> String
-translateFile l = unlines $ concat $ map translateLine l
+translateFile ls = unlines $ (concat $ S.evalState (mapM translateLine ls) 0) ++ endProg
 
 -- data VMTranslatorArgs = VMTranslatorArgs {
 --   src :: FilePath
