@@ -3,22 +3,25 @@
 import Text.ParserCombinators.ReadP
 import Control.Applicative hiding (optional)
 import qualified Control.Monad.State as S
-import Data.Char (isSpace, isAlpha)
--- import System.Console.CmdArgs
+import Data.Char (isSpace)
 import Data.Maybe
 import System.IO
 import System.Environment
 import Text.Printf
 import System.FilePath.Posix(replaceExtensions)
 
+data SegType = Fixed | Point deriving (Show)
+type BaseAddr = Integer
+data SegName = Local | Argument | This | That | Constant
+             | Static | Temp | Pointer deriving (Show)
+data MemSegment = MemSegment { segName :: SegName,
+                                 baseAddr :: Maybe BaseAddr,
+                                 segType :: SegType
+                               } deriving (Show)
+
 data Command = Arithmetic String | Push | Pop
              deriving (Show)
-data MemSegment = Local Integer | Argument Integer | This Integer
-                | That Integer | Constant | Static Integer
-                | Temp Integer | Pointer Integer
-                deriving (Show)
 type Index = Integer
-
 data Line = Line { command :: Command,
                    memSegment :: Maybe MemSegment,
                    index :: Maybe Index
@@ -43,14 +46,14 @@ arithmeticP = do
 
 toMemSegment :: String -> MemSegment
 toMemSegment seg = case seg of
-                     "local" -> Local 1
-                     "argument" -> Argument 2
-                     "this" -> This 3
-                     "that" -> That 4
-                     "constant" -> Constant
-                     "static" -> Static 16
-                     "temp" -> Temp 5
-                     "pointer" -> Pointer 3
+                     "local" -> (MemSegment Local (Just 1) Point)
+                     "argument" -> (MemSegment Argument (Just 2) Point)
+                     "this" -> (MemSegment This (Just 3) Point)
+                     "that" -> (MemSegment That (Just 4) Point)
+                     "constant" -> (MemSegment Constant Nothing Fixed)
+                     "static" -> (MemSegment Static (Just 16) Fixed)
+                     "temp" -> (MemSegment Temp (Just 5) Fixed)
+                     "pointer" -> (MemSegment Pointer (Just 3) Fixed)
 
 memSegmentP :: ReadP MemSegment
 memSegmentP = do
@@ -87,6 +90,7 @@ parseLines :: [String] -> [Line]
 -- type of 'map readP_toS lines' :: [[(Line, String)]]
 parseLines l = catMaybes $ map checkParse $ map (readP_to_S lineP) l
 
+
 -- VM -> hack assembly
 
 incSP :: [String]
@@ -98,18 +102,34 @@ decSP = ["@SP // SP--", "M=M-1"]
 addressTopStack :: [String]
 addressTopStack = ["@SP", "A=M-1"]
 
-addressMemSeg :: Line -> [String]
-addressMemSeg (Line {memSegment = Just m, index = Just i}) =
-  case m of
-    Local b -> addr b
-    Argument b -> addr b
-    This b -> addr b
-    That b -> addr b
-    Constant -> ["@" ++ show i]
-    Static b -> addr b
-    Temp b -> addr b
-    Pointer b -> addr b
-  where addr = (\b -> ["@" ++ show (b + i)])
+popValOffStackToDReg :: [String]
+popValOffStackToDReg = ["// pop val"] ++ decSP ++ addressMReg ++ setDRegWM
+
+translatePop :: Line ->  [String]
+translatePop (Line {memSegment = ms, index = Just i}) =
+  case (segName memSeg, segType memSeg) of
+    (Constant, _) -> ["There should never be a pop constant command"]
+    (_, Point) -> transPointer ba
+    (_, Fixed) -> transFixed ba
+  where memSeg = fromJust ms
+        ba = fromJust $ baseAddr memSeg
+        transFixed = (\b -> popValOffStackToDReg ++ ["@" ++ show (b + i)] ++ setMRegWD)
+        transPointer = (\b ->
+                        -- put address reg in R13
+                        ["@" ++ show b, "D=M", "@" ++ show i, "D=D+A", "@R13", "M=D"]
+                        ++ popValOffStackToDReg ++ ["@R13", "A=M", "M=D"])
+
+translatePush :: Line ->  [String]
+translatePush (Line {memSegment = ms, index = Just i}) =
+  case (segName memSeg, segType memSeg) of
+    (Constant, _) -> ["@" ++ show i] ++ setDRegWA ++ pushVal ++ incSP
+    (_, Point) -> transPointer ba
+    (_, Fixed) -> transFixed ba
+  where memSeg = fromJust ms
+        ba = fromJust $ baseAddr memSeg
+        transFixed = (\b -> ["@" ++ show (b + i)] ++ setDRegWM ++ pushVal ++ incSP)
+        transPointer = (\b -> ["@" ++ show b, "D=M", "@" ++ show i, "A=D+A"]
+                       ++ setDRegWM ++ pushVal ++ incSP)
 
 setDRegWA :: [String]
 setDRegWA = ["D=A"]
@@ -127,12 +147,8 @@ pushVal :: [String]
 -- assumes value to push on stack is in reg D
 pushVal = ["@SP // *SP=D", "A=M", "M=D"]
 
-pointerOrLit :: Line -> [String]
-pointerOrLit (Line {memSegment = Just m}) =
-  {- if pushing val from Constant use val in A, otherwise use val in M -}
-  case m of
-    Constant -> setDRegWA
-    _ -> setDRegWM
+endProg :: [String]
+endProg = ["(end)", "@end", "0;JMP"]
 
 -- Arithmetic commands
 twoArgBase :: [String]
@@ -180,56 +196,32 @@ translateArithmetic (Arithmetic c) = case c of
   "neg" -> return (["D=0"] ++ addressTopStack ++ ["M=D-M"])
 translateArithmetic _ = return ["should never happen"]
 
-endProg :: [String]
-endProg = ["(end)", "@end", "0;JMP"]
-
 translateLine :: Line -> LabelCountState [String]
 translateLine line@(Line {command = c}) = case c of
-    Push -> return (["// push val"] ++ addressMemSeg line
-                   -- TODO need a branch here maybe. If pushing a constant you want the value from A
-                   -- if pushing from a mem seg you want the value at the mem location
-                    ++ pointerOrLit line ++ pushVal ++ incSP)
-    -- need to account for the fact that static, temp, pointer can be imlemented with a static base address
-    -- but the other registers need to look up the address in the memory slot and then set that which means
-    -- you'll need to have a condional here that knows how to deal with the diff memsegments. The impl
-    -- below assumes you can address all the values with a static address
-    Pop -> return (["// pop val"] ++ decSP ++ addressMReg
-                   ++ setDRegWM ++ addressMemSeg line ++ setMRegWD)
+    Push -> return (translatePush line)
+    Pop -> return (translatePop line)
     Arithmetic _ -> translateArithmetic c
 
-  -- where outy = S.evalState (mapM funky l) 0
 translateFile :: [Line] -> String
 translateFile ls = unlines $ (concat $ S.evalState (mapM translateLine ls) 0) ++ endProg
 
--- data VMTranslatorArgs = VMTranslatorArgs {
---   src :: FilePath
---   ,dst :: FilePath
---   } deriving (Data,Typeable,Show)
-
--- options :: VMTranslatorArgs
--- options = VMTranslatorArgs {
---   src = "abc.txt" &= help "path to input Hack VM file"
---   ,dst = "dst.asm" &= help "path where translated assembly will be saved"
---   } &= program "VM -> assembly translator"
-
-parseFileName :: ReadP String
-parseFileName = do
-  fileName <- many1 (satisfy (\ch -> isAlpha ch && ch /= '.'))
-  return fileName
+getDaArgs :: [String] -> String
+getDaArgs [] = "da fuq"
+getDaArgs (x:_) = x
 
 main :: IO ()
 main = do
-  -- args <- cmdArgs options
-  -- let srcFile = src args
-  --     dstFile = dst args
-
   args <- getArgs
-  let srcFile = head args
-      dstFile = (fst $ last $ readP_to_S parseFileName $ srcFile) ++ ".asm"
+  let srcFile = getDaArgs args
 
-  contents <- fmap lines $ readFile srcFile
-  let output = translateFile $ parseLines contents
+  if srcFile == "da fuq" then do
+    putStrLn "no src file arg"
+  else do
+    let dstFile = replaceExtensions srcFile "asm"
 
-  outFile <- openFile dstFile WriteMode
-  hPutStrLn outFile output
-  hClose outFile
+    contents <- fmap lines $ readFile srcFile
+    let output = translateFile $ parseLines contents
+
+    outFile <- openFile dstFile WriteMode
+    hPutStr outFile output
+    hClose outFile
