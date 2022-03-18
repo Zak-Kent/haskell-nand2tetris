@@ -8,15 +8,24 @@ import System.Environment
 import Text.Printf
 import System.FilePath.Posix(replaceExtensions)
 
+{- MemSegment data type
+   The VM has 8 memory segements, 4 of which have static base addresses in RAM
+   and 4 are pointer based. The MemSegment type is used to capture the name,
+   segment type (Point/Fixed), and base address of each segement. -}
 data SegType = Fixed | Point deriving (Show)
 type BaseAddr = Integer
 data SegName = Local | Argument | This | That | Constant
              | Static | Temp | Pointer deriving (Show)
 data MemSegment = MemSegment { segName :: SegName,
-                                 baseAddr :: Maybe BaseAddr,
-                                 segType :: SegType
+                               baseAddr :: Maybe BaseAddr,
+                               segType :: SegType
                                } deriving (Show)
-
+{- Command data type
+   Currently supported VM commands:
+     - push <memSegment> <index>
+     - pop <memSegment> <index>
+     - arithmetic: add, sub, and, or, eq, gt, lt, not, neg
+-}
 data Command = Arithmetic String | Push | Pop
              deriving (Show)
 type Index = Integer
@@ -24,6 +33,8 @@ data Line = Line { command :: Command,
                    memSegment :: Maybe MemSegment,
                    index :: Maybe Index
                  } deriving (Show)
+
+-- VM command parsing --
 
 pushP :: ReadP Command
 pushP = do
@@ -88,8 +99,7 @@ parseLines :: [String] -> [Line]
 -- type of 'map readP_toS lines' :: [[(Line, String)]]
 parseLines l = catMaybes $ map checkParse $ map (readP_to_S lineP) l
 
-
--- VM -> hack assembly
+-- VM -> hack assembly --
 
 incSP :: [String]
 incSP = ["@SP // SP++", "M=M+1"]
