@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-
 import Text.ParserCombinators.ReadP
 import Control.Applicative hiding (optional)
 import qualified Control.Monad.State as S
