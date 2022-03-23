@@ -17,13 +17,15 @@ data MemSegment = MemSegment { segName :: SegName,
                                baseAddr :: Maybe BaseAddr,
                                segType :: SegType
                                } deriving (Show)
+
 {- Command data type
    Currently supported VM commands:
      - push <memSegment> <index>
      - pop <memSegment> <index>
      - arithmetic: add, sub, and, or, eq, gt, lt, not, neg
+     - goto <label>
 -}
-data Command = Arithmetic String | Push | Pop
+data Command = Arithmetic String | Push | Pop | Goto String
              deriving (Show)
 type Index = Integer
 data Line = Line { command :: Command,
@@ -42,6 +44,13 @@ popP :: ReadP Command
 popP = do
   _ <- string "pop"
   return Pop
+
+gotoP :: ReadP Line
+gotoP = do
+  _ <- string "goto"
+  _ <- satisfy isSpace
+  label <- munch1 (\c -> not $ isSpace c)
+  return (Line (Goto label) Nothing Nothing)
 
 arithmeticP :: ReadP Line
 arithmeticP = do
@@ -85,7 +94,7 @@ pushPopP = do
 
 lineP :: ReadP Line
 lineP = do
-  line <- arithmeticP <|> pushPopP
+  line <- arithmeticP <|> pushPopP <|> gotoP
   return line
 
 checkParse :: [(a, b)] -> Maybe a
@@ -95,5 +104,3 @@ checkParse (x:_) = Just (fst x)
 parseLines :: [String] -> [Line]
 -- type of 'map readP_toS lines' :: [[(Line, String)]]
 parseLines l = catMaybes $ map checkParse $ map (readP_to_S lineP) l
-
-
