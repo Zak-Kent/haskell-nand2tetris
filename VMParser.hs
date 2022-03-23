@@ -25,9 +25,10 @@ data MemSegment = MemSegment { segName :: SegName,
      - arithmetic: add, sub, and, or, eq, gt, lt, not, neg
      - labeled commands: goto <label>, if-goto <label>, label <label>
                          call <label>, function <label>
+     - return
 -}
 data Command = Arithmetic String | Push | Pop |Goto String | IfGoto String
-               | Label String | Call String | Function String
+               | Label String | Call String | Function String | Return
              deriving (Show)
 type Index = Integer
 data Line = Line { command :: Command,
@@ -46,6 +47,11 @@ popP :: ReadP Command
 popP = do
   _ <- string "pop"
   return Pop
+
+returnP :: ReadP Line
+returnP = do
+  _ <- string "return"
+  return (Line Return Nothing Nothing)
 
 toLabeledCommand :: String -> String -> Command
 toLabeledCommand cmd label = case cmd of
@@ -105,7 +111,7 @@ pushPopP = do
 
 lineP :: ReadP Line
 lineP = do
-  line <- arithmeticP <|> pushPopP <|> labeledCommandP
+  line <- arithmeticP <|> pushPopP <|> labeledCommandP <|> returnP
   return line
 
 checkParse :: [(a, b)] -> Maybe a
