@@ -111,11 +111,15 @@ translateArithmetic (Arithmetic c) = case c of
   "neg" -> return (["D=0"] ++ addressTopStack ++ ["M=D-M"])
 translateArithmetic _ = return ["should never happen"]
 
+translateLabel :: Command -> LabelCountState [String]
+translateLabel (Label l) = return ["@" ++ l]
+
 translateLine :: Line -> LabelCountState [String]
 translateLine line@(Line {command = c}) = case c of
     Push -> return (translatePush line)
     Pop -> return (translatePop line)
     Arithmetic _ -> translateArithmetic c
+    Label _ -> translateLabel c
 
 translateFile :: [Line] -> String
 translateFile ls = unlines $ (concat $ S.evalState (mapM translateLine ls) 0) ++ endProg
