@@ -23,9 +23,11 @@ data MemSegment = MemSegment { segName :: SegName,
      - push <memSegment> <index>
      - pop <memSegment> <index>
      - arithmetic: add, sub, and, or, eq, gt, lt, not, neg
-     - goto <label>
+     - labeled commands: goto <label>, if-goto <label>, label <label>
+                         call <label>, function <label>
 -}
-data Command = Arithmetic String | Push | Pop | Goto String
+data Command = Arithmetic String | Push | Pop |Goto String | IfGoto String
+               | Label String | Call String | Function String
              deriving (Show)
 type Index = Integer
 data Line = Line { command :: Command,
@@ -45,12 +47,21 @@ popP = do
   _ <- string "pop"
   return Pop
 
-gotoP :: ReadP Line
-gotoP = do
-  _ <- string "goto"
+toLabeledCommand :: String -> String -> Command
+toLabeledCommand cmd label = case cmd of
+                               "goto" -> Goto label
+                               "if-goto" -> IfGoto label
+                               "label" -> Label label
+                               "call" -> Call label
+                               "function" -> Function label
+
+labeledCommandP :: ReadP Line
+labeledCommandP = do
+  cmd <- string "goto" <|> string "if-goto" <|> string "label"
+         <|> string "call" <|> string "function"
   _ <- satisfy isSpace
   label <- munch1 (\c -> not $ isSpace c)
-  return (Line (Goto label) Nothing Nothing)
+  return $ (Line (toLabeledCommand cmd label) Nothing Nothing)
 
 arithmeticP :: ReadP Line
 arithmeticP = do
@@ -94,7 +105,7 @@ pushPopP = do
 
 lineP :: ReadP Line
 lineP = do
-  line <- arithmeticP <|> pushPopP <|> gotoP
+  line <- arithmeticP <|> pushPopP <|> labeledCommandP
   return line
 
 checkParse :: [(a, b)] -> Maybe a
