@@ -112,7 +112,13 @@ translateArithmetic (Arithmetic c) = case c of
 translateArithmetic _ = return ["should never happen"]
 
 translateLabel :: Command -> LabelCountState [String]
-translateLabel (Label l) = return ["@" ++ l]
+translateLabel (Label l) = return ["(" ++ l ++ ")"]
+
+translateGoto :: Command -> LabelCountState [String]
+translateGoto (Goto l) = return ["@" ++ l, "0;JMP"]
+
+translateIfGoto :: Command -> LabelCountState [String]
+translateIfGoto (IfGoto l) = return ["@SP", "AM=M-1", "D=M", "@" ++ l, "D;JGT"]
 
 translateLine :: Line -> LabelCountState [String]
 translateLine line@(Line {command = c}) = case c of
@@ -120,6 +126,8 @@ translateLine line@(Line {command = c}) = case c of
     Pop -> return (translatePop line)
     Arithmetic _ -> translateArithmetic c
     Label _ -> translateLabel c
+    Goto _ -> translateGoto c
+    IfGoto _ -> translateIfGoto c
 
 translateFile :: [Line] -> String
 translateFile ls = unlines $ (concat $ S.evalState (mapM translateLine ls) 0) ++ endProg
