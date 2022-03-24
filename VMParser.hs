@@ -27,8 +27,11 @@ data MemSegment = MemSegment { segName :: SegName,
                          call <label>, function <label>
      - return
 -}
+type NArgs = Integer
+type Nlocals = Integer
 data Command = Arithmetic String | Push | Pop |Goto String | IfGoto String
-               | Label String | Call String | Function String | Return
+               | Label String | Call String NArgs| Function String Nlocals
+               | Return
              deriving (Show)
 type Index = Integer
 data Line = Line { command :: Command,
@@ -58,16 +61,29 @@ toLabeledCommand cmd label = case cmd of
                                "goto" -> Goto label
                                "if-goto" -> IfGoto label
                                "label" -> Label label
-                               "call" -> Call label
-                               "function" -> Function label
 
 labeledCommandP :: ReadP Line
 labeledCommandP = do
   cmd <- string "goto" <|> string "if-goto" <|> string "label"
-         <|> string "call" <|> string "function"
   _ <- satisfy isSpace
   label <- munch1 (\c -> not $ isSpace c)
   return $ (Line (toLabeledCommand cmd label) Nothing Nothing)
+
+toFunctionCommand :: String -> String -> Integer -> Command
+toFunctionCommand cmd label n = case cmd of
+                                  "call" -> Call label n
+                                  "function" -> Function label n
+
+functionCommandP :: ReadP Line
+functionCommandP = do
+  cmd <- string "call" <|> string "function"
+  _ <- satisfy isSpace
+  label <- munch1 (\c -> not $ isSpace c)
+  _ <- satisfy isSpace
+  num <- munch1 isDigit
+  return $ (Line
+            (toFunctionCommand cmd label (read num::Integer))
+            Nothing Nothing)
 
 arithmeticP :: ReadP Line
 arithmeticP = do
@@ -112,6 +128,7 @@ pushPopP = do
 lineP :: ReadP Line
 lineP = do
   line <- arithmeticP <|> pushPopP <|> labeledCommandP <|> returnP
+          <|> functionCommandP
   return line
 
 checkParse :: [(a, b)] -> Maybe a
