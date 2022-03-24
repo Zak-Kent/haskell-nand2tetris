@@ -116,7 +116,7 @@ translateCall (Call funcName nArgs) = do
   -- need to generate a unique return address label for each func call
   callCount <- S.get
   S.put (callCount + 1)
-  let retAddr = printf (funcName ++ "$" ++ "%d") callCount
+  let retAddr = printf (funcName ++ ".call" ++ "$" ++ "%d") callCount
   return (
     -- push retAddr onto stack
     ["@" ++ retAddr] ++ setDRegWA ++ pushVal
@@ -143,6 +143,15 @@ translateCall (Call funcName nArgs) = do
          )
   where sub = twoArgBase ++ ["M=M-D"]
 
+translateFunction :: Command -> LabelCountState [String]
+translateFunction (Function funcName nLocals) =
+  return (
+    ["(" ++ funcName ++ ")"] -- declare label for func
+    ++ pushLocals (fromInteger nLocals) -- push 0 to stack nLocals times
+  )
+  where pushLocals = (\n -> concat
+                       (replicate n (["@0"] ++ setDRegWA ++ pushVal)))
+
 translateLabel :: Command -> LabelCountState [String]
 translateLabel (Label l) = return ["(" ++ l ++ ")"]
 
@@ -161,6 +170,7 @@ translateLine line@(Line {command = c}) = case c of
     Goto _ -> translateGoto c
     IfGoto _ -> translateIfGoto c
     Call _ _ -> translateCall c
+    Function _ _ -> translateFunction c
 
 translateFile :: [Line] -> String
 translateFile ls = unlines $
