@@ -37,14 +37,14 @@ translatePop (Line {memSegment = ms, index = Just i}) =
 translatePush :: Line ->  [String]
 translatePush (Line {memSegment = ms, index = Just i}) =
   case (segName memSeg, segType memSeg) of
-    (Constant, _) -> ["@" ++ show i] ++ setDRegWA ++ pushVal ++ incSP
+    (Constant, _) -> ["@" ++ show i] ++ setDRegWA ++ pushVal
     (_, Point) -> transPointer ba
     (_, Fixed) -> transFixed ba
   where memSeg = fromJust ms
         ba = fromJust $ baseAddr memSeg
-        transFixed = (\b -> ["@" ++ show (b + i)] ++ setDRegWM ++ pushVal ++ incSP)
+        transFixed = (\b -> ["@" ++ show (b + i)] ++ setDRegWM ++ pushVal)
         transPointer = (\b -> ["@" ++ show b, "D=M", "@" ++ show i, "A=D+A"]
-                       ++ setDRegWM ++ pushVal ++ incSP)
+                       ++ setDRegWM ++ pushVal)
 
 setDRegWA :: [String]
 setDRegWA = ["D=A"]
@@ -60,7 +60,7 @@ addressMReg = ["A=M"]
 
 pushVal :: [String]
 -- assumes value to push on stack is in reg D
-pushVal = ["@SP // *SP=D", "A=M", "M=D"]
+pushVal = ["@SP // *SP=D", "A=M", "M=D"] ++ incSP
 
 endProg :: [String]
 endProg = ["(end)", "@end", "0;JMP"]
