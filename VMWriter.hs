@@ -111,6 +111,38 @@ translateArithmetic (Arithmetic c) = case c of
   "neg" -> return (["D=0"] ++ addressTopStack ++ ["M=D-M"])
 translateArithmetic _ = return ["should never happen"]
 
+translateCall :: Command -> LabelCountState [String]
+translateCall (Call funcName nArgs) = do
+  -- need to generate a unique return address label for each func call
+  callCount <- S.get
+  S.put (callCount + 1)
+  let retAddr = printf (funcName ++ "$" ++ "%d") callCount
+  return (
+    -- push retAddr onto stack
+    ["@" ++ retAddr] ++ setDRegWA ++ pushVal
+    -- push caller's *LCL onto stack
+    ++ ["@LCL"] ++ setDRegWM ++ pushVal
+    -- push caller's *ARG onto stack
+    ++ ["@ARG"] ++ setDRegWM ++ pushVal
+    -- push caller's *THIS onto stack
+    ++ ["@THIS"] ++ setDRegWM ++ pushVal
+    -- push caller's *THAT onto stack
+    ++ ["@THAT"] ++ setDRegWM ++ pushVal
+    -- set push *SP and 5 to stack and sub
+    ++ ["@SP"] ++ setDRegWM ++ pushVal ++ ["@5"] ++ setDRegWA ++ pushVal ++ sub
+    -- push nArgs to stack and sub
+    ++ ["@" ++ show nArgs] ++ pushVal ++ sub
+    -- pop val to D reg and set *ARG to val
+    ++ popValOffStackToDReg ++ ["@ARG"] ++ setMRegWD
+    -- set LCL = *SP
+    ++ ["@SP"] ++ setDRegWM ++ ["@LCL"] ++ setMRegWD
+    -- goto function
+    ++ ["@" ++ funcName, "0;JMP"]
+    -- declare retAddr label
+    ++ ["(" ++ retAddr ++ ")"]
+         )
+  where sub = twoArgBase ++ ["M=M-D"]
+
 translateLabel :: Command -> LabelCountState [String]
 translateLabel (Label l) = return ["(" ++ l ++ ")"]
 
@@ -128,6 +160,8 @@ translateLine line@(Line {command = c}) = case c of
     Label _ -> translateLabel c
     Goto _ -> translateGoto c
     IfGoto _ -> translateIfGoto c
+    Call _ _ -> translateCall c
 
 translateFile :: [Line] -> String
-translateFile ls = unlines $ (concat $ S.evalState (mapM translateLine ls) 0) ++ endProg
+translateFile ls = unlines $
+  (concat $ S.evalState (mapM translateLine ls) 0) ++ endProg
