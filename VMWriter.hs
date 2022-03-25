@@ -185,7 +185,7 @@ translateGoto :: Command -> LabelCountState [String]
 translateGoto (Goto l) = return ["@" ++ l, "0;JMP"]
 
 translateIfGoto :: Command -> LabelCountState [String]
-translateIfGoto (IfGoto l) = return ["@SP", "AM=M-1", "D=M", "@" ++ l, "D;JGT"]
+translateIfGoto (IfGoto l) = return ["@SP", "AM=M-1", "D=M", "@" ++ l, "D;JNE"]
 
 translateLine :: Line -> LabelCountState [String]
 translateLine line@(Line {command = c}) = case c of
