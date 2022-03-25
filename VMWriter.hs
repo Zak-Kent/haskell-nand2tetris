@@ -152,6 +152,32 @@ translateFunction (Function funcName nLocals) =
   where pushLocals = (\n -> concat
                        (replicate n (["@0"] ++ setDRegWA ++ pushVal)))
 
+translateReturn :: Command -> LabelCountState [String]
+translateReturn Return =
+  return (
+    -- save LCL into temp 'endFrame' var using R16
+    ["@LCL"] ++ setDRegWM ++ ["@R16"] ++ setMRegWD
+    -- set *ARG = pop (), this is the top of the stack of the caller
+    ++ popValOffStackToDReg ++ ["@ARG"] ++ addressMReg ++ setMRegWD
+    -- set SP = ARG + 1
+    ++ ["@ARG"] ++ setDRegWM ++ ["@1"] ++ ["D=D+A"] ++ ["@SP"] ++ setMRegWD
+    -- THAT = *(endFrame - 1)
+    ++ (calcCallerAddr "THAT" "1")
+    -- THIS = *(endFrame - 2)
+    ++ (calcCallerAddr "THIS" "2")
+    -- ARG = *(endFrame - 3)
+    ++ (calcCallerAddr "ARG" "3")
+    -- LCL = *(endFrame - 4)
+    ++ (calcCallerAddr "LCL" "4")
+    -- get retAddr *(endFrame - 5) and goto
+    ++ (calcEndFrameOffset "5") ++ ["A=D"] ++ ["0;JMP"]
+  )
+  where calcEndFrameOffset offset =
+          ["@R16"] ++ setDRegWM ++ [(printf "@%s" offset)] ++ ["D=D-A"]
+          ++ ["A=D"] ++ ["D=M"]
+        calcCallerAddr memSeg offset =
+          (calcEndFrameOffset offset) ++ ["@" ++ memSeg] ++ setMRegWD
+
 translateLabel :: Command -> LabelCountState [String]
 translateLabel (Label l) = return ["(" ++ l ++ ")"]
 
@@ -171,6 +197,7 @@ translateLine line@(Line {command = c}) = case c of
     IfGoto _ -> translateIfGoto c
     Call _ _ -> translateCall c
     Function _ _ -> translateFunction c
+    Return -> translateReturn c
 
 translateFile :: [Line] -> String
 translateFile ls = unlines $
