@@ -155,8 +155,10 @@ translateFunction (Function funcName nLocals) =
 translateReturn :: Command -> LabelCountState [String]
 translateReturn Return =
   return (
-    -- save LCL into temp 'endFrame' var using R16
-    ["@LCL"] ++ setDRegWM ++ ["@R16"] ++ setMRegWD
+    -- save LCL into temp 'endFrame' var using R14
+    ["@LCL"] ++ setDRegWM ++ ["@R14"] ++ setMRegWD
+    -- save 'retAddr' in var using R15
+    ++ (calcEndFrameOffset "5") ++ ["@R15"] ++ setMRegWD
     -- set *ARG = pop (), this is the top of the stack of the caller
     ++ popValOffStackToDReg ++ ["@ARG"] ++ addressMReg ++ setMRegWD
     -- set SP = ARG + 1
@@ -169,11 +171,11 @@ translateReturn Return =
     ++ (calcCallerAddr "ARG" "3")
     -- LCL = *(endFrame - 4)
     ++ (calcCallerAddr "LCL" "4")
-    -- get retAddr *(endFrame - 5) and goto
-    ++ (calcEndFrameOffset "5") ++ ["A=D"] ++ ["0;JMP"]
+    -- get retAddr in R15 and goto
+    ++ ["@R15"] ++ addressMReg ++ ["0;JMP"]
   )
   where calcEndFrameOffset offset =
-          ["@R16"] ++ setDRegWM ++ [(printf "@%s" offset)] ++ ["D=D-A"]
+          ["@R14"] ++ setDRegWM ++ [(printf "@%s" offset)] ++ ["D=D-A"]
           ++ ["A=D"] ++ ["D=M"]
         calcCallerAddr memSeg offset =
           (calcEndFrameOffset offset) ++ ["@" ++ memSeg] ++ setMRegWD
