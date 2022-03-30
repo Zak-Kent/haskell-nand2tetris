@@ -14,8 +14,8 @@ main = do
   let src = head s
       readAndTranslate f = do
         contents <- fmap lines $ readFile f
-        return $ translateFile $ parseLines contents
-      callSysInit = translateFile $ parseLines ["call Sys.init 0"]
+        return $ translateFile (takeBaseName f) (parseLines contents)
+      callSysInit = translateFile "init" $ parseLines ["call Sys.init 0"]
       setSPto256 = [(unlines ["@256", "D=A", "@SP", "M=D"])]
       isVmFile = (\f -> ".vm" == (takeExtensions f))
   isDir <- doesDirectoryExist src

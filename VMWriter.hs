@@ -20,29 +20,33 @@ addressTopStack = ["@SP", "A=M-1"]
 popValOffStackToDReg :: [String]
 popValOffStackToDReg = ["// pop val"] ++ decSP ++ addressMReg ++ setDRegWM
 
-translatePop :: Line ->  [String]
-translatePop (Line {memSegment = ms, index = Just i}) =
+translatePop :: String -> Line ->  [String]
+translatePop fName (Line {memSegment = ms, index = Just i}) =
   case (segName memSeg, segType memSeg) of
     (Constant, _) -> ["There should never be a pop constant command"]
     (_, Point) -> transPointer ba
+    (Static, Fixed) -> transStatic
     (_, Fixed) -> transFixed ba
   where memSeg = fromJust ms
         ba = fromJust $ baseAddr memSeg
         transFixed = (\b -> popValOffStackToDReg ++ ["@" ++ show (b + i)] ++ setMRegWD)
+        transStatic = popValOffStackToDReg ++ ["@" ++ fName ++ "$" ++ show i] ++ setMRegWD
         transPointer = (\b ->
                         -- put address reg in R13
                         ["@" ++ show b, "D=M", "@" ++ show i, "D=D+A", "@R13", "M=D"]
                         ++ popValOffStackToDReg ++ ["@R13", "A=M", "M=D"])
 
-translatePush :: Line ->  [String]
-translatePush (Line {memSegment = ms, index = Just i}) =
+translatePush :: String -> Line ->  [String]
+translatePush fName (Line {memSegment = ms, index = Just i}) =
   case (segName memSeg, segType memSeg) of
     (Constant, _) -> ["@" ++ show i] ++ setDRegWA ++ pushVal
     (_, Point) -> transPointer ba
+    (Static, Fixed) -> transStatic
     (_, Fixed) -> transFixed ba
   where memSeg = fromJust ms
         ba = fromJust $ baseAddr memSeg
         transFixed = (\b -> ["@" ++ show (b + i)] ++ setDRegWM ++ pushVal)
+        transStatic = ["@" ++ fName ++ "$" ++ show i] ++ setDRegWM ++ pushVal
         transPointer = (\b -> ["@" ++ show b, "D=M", "@" ++ show i, "A=D+A"]
                        ++ setDRegWM ++ pushVal)
 
@@ -140,7 +144,7 @@ translateCall (Call funcName nArgs) = do
     ++ ["@" ++ funcName, "0;JMP"]
     -- declare retAddr label
     ++ ["(" ++ retAddr ++ ")"]
-         )
+    )
   where sub = twoArgBase ++ ["M=M-D"]
 
 translateFunction :: Command -> LabelCountState [String]
@@ -189,10 +193,10 @@ translateGoto (Goto l) = return ["@" ++ l, "0;JMP"]
 translateIfGoto :: Command -> LabelCountState [String]
 translateIfGoto (IfGoto l) = return ["@SP", "AM=M-1", "D=M", "@" ++ l, "D;JNE"]
 
-translateLine :: Line -> LabelCountState [String]
-translateLine line@(Line {command = c}) = case c of
-    Push -> return (translatePush line)
-    Pop -> return (translatePop line)
+translateLine :: String -> Line -> LabelCountState [String]
+translateLine fName line@(Line {command = c}) = case c of
+    Push -> return (translatePush fName line)
+    Pop -> return (translatePop fName line)
     Arithmetic _ -> translateArithmetic c
     Label _ -> translateLabel c
     Goto _ -> translateGoto c
@@ -201,6 +205,7 @@ translateLine line@(Line {command = c}) = case c of
     Function _ _ -> translateFunction c
     Return -> translateReturn c
 
-translateFile :: [Line] -> String
-translateFile ls = unlines $
-  (concat $ S.evalState (mapM translateLine ls) 0) ++ endProg
+translateFile :: String -> [Line] -> String
+translateFile fName ls =
+  unlines $
+  (concat $ S.evalState (mapM (translateLine fName) ls) 0)
