@@ -131,7 +131,7 @@ translateCall (Call funcName nArgs) = do
     -- set push *SP and 5 to stack and sub
     ++ ["@SP"] ++ setDRegWM ++ pushVal ++ ["@5"] ++ setDRegWA ++ pushVal ++ sub
     -- push nArgs to stack and sub
-    ++ ["@" ++ show nArgs] ++ pushVal ++ sub
+    ++ ["@" ++ show nArgs] ++ setDRegWA ++ pushVal ++ sub
     -- pop val to D reg and set *ARG to val
     ++ popValOffStackToDReg ++ ["@ARG"] ++ setMRegWD
     -- set LCL = *SP
