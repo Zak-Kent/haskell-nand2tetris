@@ -20,6 +20,25 @@ addressTopStack = ["@SP", "A=M-1"]
 popValOffStackToDReg :: [String]
 popValOffStackToDReg = ["// pop val"] ++ decSP ++ addressMReg ++ setDRegWM
 
+setDRegWA :: [String]
+setDRegWA = ["D=A"]
+
+setMRegWD :: [String]
+setMRegWD = ["M=D"]
+
+setDRegWM :: [String]
+setDRegWM = ["D=M"]
+
+addressMReg :: [String]
+addressMReg = ["A=M"]
+
+pushVal :: [String]
+-- assumes value to push on stack is in reg D
+pushVal = ["@SP // *SP=D", "A=M", "M=D"] ++ incSP
+
+endProg :: [String]
+endProg = ["(end)", "@end", "0;JMP"]
+
 translatePop :: String -> Line ->  [String]
 translatePop fName (Line {memSegment = ms, index = Just i}) =
   case (segName memSeg, segType memSeg) of
@@ -49,25 +68,6 @@ translatePush fName (Line {memSegment = ms, index = Just i}) =
         transStatic = ["@" ++ fName ++ "$" ++ show i] ++ setDRegWM ++ pushVal
         transPointer = (\b -> ["@" ++ show b, "D=M", "@" ++ show i, "A=D+A"]
                        ++ setDRegWM ++ pushVal)
-
-setDRegWA :: [String]
-setDRegWA = ["D=A"]
-
-setMRegWD :: [String]
-setMRegWD = ["M=D"]
-
-setDRegWM :: [String]
-setDRegWM = ["D=M"]
-
-addressMReg :: [String]
-addressMReg = ["A=M"]
-
-pushVal :: [String]
--- assumes value to push on stack is in reg D
-pushVal = ["@SP // *SP=D", "A=M", "M=D"] ++ incSP
-
-endProg :: [String]
-endProg = ["(end)", "@end", "0;JMP"]
 
 -- Arithmetic commands
 twoArgBase :: [String]
