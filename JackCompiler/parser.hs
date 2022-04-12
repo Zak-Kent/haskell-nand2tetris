@@ -1,4 +1,5 @@
 import AST
+import Data.Char
 import Text.ParserCombinators.ReadP
 import Control.Applicative hiding (optional)
 
@@ -19,6 +20,11 @@ symbolP = do
                    "+", "-", "*", "/", "&", "|", "<", ">", "=", "~"]
   return (Symbol sy)
 
+integerConstantP :: ReadP IntegerConstant
+integerConstantP = do
+  -- use of read safe because only ascii digits 0-9 make it past munch
+  i <- fmap read $ munch1 isDigit
+  return (IntegerConstant i)
 
 main :: IO ()
 main = do
