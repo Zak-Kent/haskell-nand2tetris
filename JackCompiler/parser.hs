@@ -3,6 +3,9 @@ import Data.Char
 import Text.ParserCombinators.ReadP
 import Control.Applicative hiding (optional)
 
+excludeChars :: [Char] -> Char -> Bool
+excludeChars xcs c = not $ any (c ==) xcs
+
 chooseLit :: [String] -> ReadP String
 chooseLit xs = choice [string x | x <- xs]
 
@@ -25,6 +28,14 @@ integerConstantP = do
   -- use of read safe because only ascii digits 0-9 make it past munch
   i <- fmap read $ munch1 isDigit
   return (IntegerConstant i)
+
+stringConstantP :: ReadP StringConstant
+stringConstantP = do
+  _ <- satisfy (== '"')
+  -- TODO: double check the inner " doesn't need to be escaped
+  s <- munch $ excludeChars ['"', '\n'] -- all other chars allowed
+  _ <- satisfy (== '"')
+  return (StringConstant s)
 
 main :: IO ()
 main = do
