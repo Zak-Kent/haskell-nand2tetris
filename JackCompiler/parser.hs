@@ -37,6 +37,13 @@ stringConstantP = do
   _ <- satisfy (== '"')
   return (StringConstant s)
 
+identifierP :: ReadP Identifier
+identifierP = do
+  {- a seq of letters, digits, and '_' not starting with a digit -}
+  x <- satisfy $ not . isDigit
+  xs <- munch $ (\c -> isDigit c || isLetter c || ('_' == c))
+  return (Identifier $ [x] ++ xs)
+
 main :: IO ()
 main = do
   let (p, _) = head $ readP_to_S keywordP "class"
