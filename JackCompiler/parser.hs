@@ -13,6 +13,13 @@ keywordP = do
                    "return"]
   return (Keyword kw)
 
+symbolP :: ReadP Symbol
+symbolP = do
+  sy <- chooseLit ["{", "}", "(", ")", "[", "]", ".", ",", ";",
+                   "+", "-", "*", "/", "&", "|", "<", ">", "=", "~"]
+  return (Symbol sy)
+
+
 main :: IO ()
 main = do
   let (p, _) = head $ readP_to_S keywordP "class"
