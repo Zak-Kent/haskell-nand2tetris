@@ -2,7 +2,7 @@ import AST
 import qualified Text.Parsec as Ps
 
 chooseLit :: [String] -> Ps.Parsec String () String
-chooseLit xs = Ps.choice [Ps.string x | x <- xs]
+chooseLit xs = Ps.choice [Ps.try $ Ps.string x | x <- xs]
 
 keywordP :: Ps.Parsec String () Keyword
 keywordP = do
