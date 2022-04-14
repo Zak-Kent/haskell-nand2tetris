@@ -1,11 +1,10 @@
 import AST
 import qualified Text.Parsec as Ps
-import Control.Monad.Identity (Identity)
 
-chooseLit :: [String] -> Ps.ParsecT String () Identity String
+chooseLit :: [String] -> Ps.Parsec String () String
 chooseLit xs = Ps.choice [Ps.string x | x <- xs]
 
-keywordP :: Ps.ParsecT String () Identity Keyword
+keywordP :: Ps.Parsec String () Keyword
 keywordP = do
   kw <- chooseLit ["class", "constructor", "function", "method", "field",
                    "static", "var", "int", "char", "boolean", "void", "true",
@@ -13,7 +12,7 @@ keywordP = do
                    "return"]
   return (Keyword kw)
 
-symbolP :: Ps.ParsecT String () Identity Symbol
+symbolP :: Ps.Parsec String () Symbol
 symbolP = do
   sy <- chooseLit ["{", "}", "(", ")", "[", "]", ".", ",", ";",
                    "+", "-", "*", "/", "&", "|", "<", ">", "=", "~"]
@@ -39,5 +38,5 @@ identifierP = do
 
 main :: IO ()
 main = do
-  let blarg = Ps.parse identifierP "error file" "hah_ahhaa4"
+  let blarg = Ps.parse identifierP "error file" "hah ahhaa4"
   print blarg
