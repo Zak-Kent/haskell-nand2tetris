@@ -6,3 +6,6 @@ data Symbol = Symbol String deriving (Show)
 data IntegerConstant = IntegerConstant Int deriving (Show)
 data StringConstant = StringConstant String deriving (Show)
 data Identifier = Identifier String deriving (Show)
+
+-- Jack expressions
+data KeywordConstant = KeywordConstant String deriving (Show)

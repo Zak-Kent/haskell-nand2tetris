@@ -12,6 +12,11 @@ keywordP = do
                    "return"]
   return (Keyword kw)
 
+keywordConstantP :: Ps.Parsec String () KeywordConstant
+keywordConstantP = do
+  kwc <- chooseLit ["true", "false", "null", "this"]
+  return (KeywordConstant kwc)
+
 symbolP :: Ps.Parsec String () Symbol
 symbolP = do
   sy <- chooseLit ["{", "}", "(", ")", "[", "]", ".", ",", ";",
