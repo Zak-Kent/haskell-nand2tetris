@@ -23,6 +23,16 @@ symbolP = do
                    "+", "-", "*", "/", "&", "|", "<", ">", "=", "~"]
   return (Symbol sy)
 
+opP :: Ps.Parsec String () Op
+opP = do
+  op <- chooseLit ["+", "-", "*", "/", "&", "|", "<", ">", "="]
+  return (Op op)
+
+unaryOpP :: Ps.Parsec String () UnaryOp
+unaryOpP = do
+  uop <- chooseLit ["-", "~"]
+  return (UnaryOp uop)
+
 integerConstantP :: Ps.Parsec String () IntegerConstant
 integerConstantP = do
   -- use of read safe because only ascii digits 0-9 make it past the parser

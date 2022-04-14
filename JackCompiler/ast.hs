@@ -9,3 +9,5 @@ data Identifier = Identifier String deriving (Show)
 
 -- Jack expressions
 data KeywordConstant = KeywordConstant String deriving (Show)
+data UnaryOp = UnaryOp String deriving (Show)
+data Op = Op String deriving (Show)
