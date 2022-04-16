@@ -27,7 +27,7 @@ opP = do
 identifierP :: Ps.Parsec String () Identifier
 identifierP = do
   {- a seq of letters, digits, and '_' not starting with a digit -}
-  x <- Ps.noneOf ['0'..'9']
+  x <- Ps.choice [Ps.letter, Ps.char '_']
   xs <- Ps.many $ Ps.choice [Ps.digit, Ps.letter, Ps.char '_']
   return (Identifier $ [x] ++ xs)
 
