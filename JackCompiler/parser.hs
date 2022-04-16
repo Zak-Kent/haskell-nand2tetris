@@ -47,6 +47,19 @@ exprP = do
   opTerms <- Ps.many opTermP
   return (Expr t opTerms)
 
+-- SubCall parsers
+subCallNameP :: Ps.Parsec String () SubCall
+subCallNameP = do
+  Ps.spaces
+  scn <- identifierP
+  Ps.spaces
+  lp <- Ps.string "("
+  Ps.spaces
+  exprList <- Ps.sepBy exprP $ Ps.string ","
+  Ps.spaces
+  rp <- Ps.string ")"
+  return (SubCallName scn (Symbol lp) exprList (Symbol rp))
+
 -- Term parsers
 keywordConstantP :: Ps.Parsec String () Term
 keywordConstantP = do
