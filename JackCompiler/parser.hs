@@ -4,6 +4,14 @@ import qualified Text.Parsec as Ps
 chooseLit :: [String] -> Ps.Parsec String () String
 chooseLit xs = Ps.choice [Ps.try $ Ps.string x | x <- xs]
 
+wrapSps :: (Ps.Parsec String () a) -> (Ps.Parsec String () a)
+wrapSps p = do
+  {- Allow spaces on either side of parser's target -}
+  Ps.spaces
+  out <- p
+  Ps.spaces
+  return out
+
 -- Terminal element parsers
 keywordP :: Ps.Parsec String () Keyword
 keywordP = do
@@ -34,30 +42,23 @@ identifierP = do
 -- Expr parsers
 opTermP :: Ps.Parsec String () (Op, Term)
 opTermP = do
-  Ps.spaces
-  op <- opP
-  Ps.spaces
-  t <- termP
+  op <- wrapSps opP
+  t <- wrapSps termP
   return (op, t)
 
 exprP :: Ps.Parsec String () Expr
 exprP = do
-  t <- termP
-  Ps.spaces
-  opTerms <- Ps.many opTermP
+  t <- wrapSps termP
+  opTerms <- wrapSps $ Ps.many opTermP
   return (Expr t opTerms)
 
 -- SubCall parsers
 subCallNameP :: Ps.Parsec String () SubCall
 subCallNameP = do
-  Ps.spaces
-  scn <- identifierP
-  Ps.spaces
-  lp <- Ps.string "("
-  Ps.spaces
-  exprList <- Ps.sepBy exprP $ Ps.string ","
-  Ps.spaces
-  rp <- Ps.string ")"
+  scn <- wrapSps identifierP
+  lp <- wrapSps $ Ps.string "("
+  exprList <- wrapSps $ Ps.sepBy exprP $ Ps.string ","
+  rp <- wrapSps $ Ps.string ")"
   return (SubCallName scn (Symbol lp) exprList (Symbol rp))
 
 -- Term parsers
