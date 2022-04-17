@@ -92,24 +92,50 @@ tSubCallNoExprs = TestCase (assertEqual "a sub routine with no exprs"
                                     []
                                     (Symbol ")")))
                             $ parseIt subCallNameP "bar()    ")
+
+tSubCallClassWithExprs = TestCase (assertEqual "a class sub routine with exprs"
+                                  (Right (SubCallClassOrVar (Identifier "foo")
+                                         (Symbol ".")
+                                         (Identifier "bar")
+                                         (Symbol "(")
+                                         [(Expr (VarName (Identifier  "bb"))
+                                           [((Op "=", (IntegerConstant 5)))]),
+                                          (Expr (IntegerConstant 10)
+                                           [((Op "-", (IntegerConstant 42)))])]
+                                         (Symbol ")")))
+                                  $ parseIt
+                                    subCallClassOrVarP "foo.bar(bb = 5, 10-42)")
+
+tSubCallClassNoExprs = TestCase (assertEqual "a class sub routine with exprs"
+                                  (Right (SubCallClassOrVar (Identifier "biz")
+                                          (Symbol ".")
+                                          (Identifier "baz")
+                                          (Symbol "(")
+                                          []
+                                          (Symbol ")")))
+                                  $ parseIt
+                                    subCallClassOrVarP "  biz  .  baz  ()")
+
 -- TestLists
 terminalParserTests =
-  TestList [TestLabel "test keywordP" tKeywordP,
-            TestLabel "test keywordP fail" tKeywordPFail,
-            TestLabel "test symbolP" tSymbolP]
+  TestList [TestLabel "keywordP" tKeywordP,
+            TestLabel "keywordP fail" tKeywordPFail,
+            TestLabel "symbolP" tSymbolP]
 
 identifierPTests =
-  TestList [TestLabel "test identifierP" tIdentifierP,
-            TestLabel "test identifierP spaces" tIdentifierPSpaces,
-            TestLabel "test identifierP no digit" tIdentifierPNoDigit]
+  TestList [TestLabel "identifierP" tIdentifierP,
+            TestLabel "identifierP spaces" tIdentifierPSpaces,
+            TestLabel "identifierP no digit" tIdentifierPNoDigit]
 
 exprPTests =
-  TestList [TestLabel "test exprP one term" tExprOneTerm,
-            TestLabel "test exprP two term" tExprTwoTerms,
-            TestLabel "test exprP many terms" tExprManyTerms]
+  TestList [TestLabel "exprP one term" tExprOneTerm,
+            TestLabel "exprP two term" tExprTwoTerms,
+            TestLabel "exprP many terms" tExprManyTerms]
 
 subCallNamePTests =
-  TestList [TestLabel "test sub routine call with expr list" tBasicSubCall,
-            TestLabel "test sub rountne call with no exprs" tSubCallNoExprs]
+  TestList [TestLabel "sub routine call with expr list" tBasicSubCall,
+            TestLabel "sub rountne call with no exprs" tSubCallNoExprs,
+            TestLabel "class sub routine with exprs" tSubCallClassWithExprs,
+            TestLabel "class sub routine no exprs" tSubCallClassNoExprs]
 
 -- run in REPL with: runTestTT <TestList>

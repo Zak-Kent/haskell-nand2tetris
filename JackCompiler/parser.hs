@@ -65,6 +65,16 @@ subCallNameP = do
   rp <- wrapSps $ Ps.string ")"
   return (SubCallName scn (Symbol lp) exprList (Symbol rp))
 
+subCallClassOrVarP :: Ps.Parsec String () SubCall
+subCallClassOrVarP = do
+  n <- identifierP
+  dot <- Ps.string "."
+  sn <- identifierP
+  lp <- wrapSps $ Ps.string "("
+  exprList <- wrapSps $ Ps.sepBy exprP $ Ps.string ","
+  rp <- wrapSps $ Ps.string ")"
+  return (SubCallClassOrVar n (Symbol ".") sn (Symbol lp) exprList (Symbol rp))
+
 -- Term parsers
 keywordConstantP :: Ps.Parsec String () Term
 keywordConstantP = do
