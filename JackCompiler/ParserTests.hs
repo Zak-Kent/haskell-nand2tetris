@@ -75,6 +75,23 @@ tExprManyTerms = TestCase (assertEqual "an expression with many terms parses"
                                  ((Op "+", (IntegerConstant 2)))]))
                         $ parseIt exprP "foo = 4 + 2")
 
+-- subCallNameP tests
+tBasicSubCall = TestCase (assertEqual "a sub routine with expr list parses"
+                         (Right (SubCallName (Identifier "foo")
+                                (Symbol "(")
+                                [(Expr (IntegerConstant 5)
+                                  [((Op "+", (IntegerConstant 8)))]),
+                                  (Expr (IntegerConstant 10)
+                                  [((Op "-", (IntegerConstant 42)))])]
+                                (Symbol ")")))
+                           $ parseIt subCallNameP "foo (5+8, 10  - 42)")
+
+tSubCallNoExprs = TestCase (assertEqual "a sub routine with no exprs"
+                            (Right (SubCallName (Identifier "bar")
+                                    (Symbol "(")
+                                    []
+                                    (Symbol ")")))
+                            $ parseIt subCallNameP "bar()    ")
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "test keywordP" tKeywordP,
@@ -90,5 +107,9 @@ exprPTests =
   TestList [TestLabel "test exprP one term" tExprOneTerm,
             TestLabel "test exprP two term" tExprTwoTerms,
             TestLabel "test exprP many terms" tExprManyTerms]
+
+subCallNamePTests =
+  TestList [TestLabel "test sub routine call with expr list" tBasicSubCall,
+            TestLabel "test sub rountne call with no exprs" tSubCallNoExprs]
 
 -- run in REPL with: runTestTT <TestList>
