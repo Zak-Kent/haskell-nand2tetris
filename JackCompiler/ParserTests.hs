@@ -35,19 +35,27 @@ tKeywordP = TestCase (assertEqual "keyword parse"
 tKeywordPFail = TestCase (assertBool "keywordP fail"
                          (isLeft $ parseIt keywordP "x"))
 
+-- identifierP tests
 tIdentifierP = TestCase (assertEqual "identifier parse"
-                          (Right (Identifier "foo"))
-                          $ parseIt identifierP "foo")
+                          (Right (Identifier "foo123"))
+                          $ parseIt identifierP "foo123")
 
 tIdentifierPSpaces = TestCase (assertEqual "identifierP handles spaces"
                               (Right (Identifier "bar"))
                               $ parseIt identifierP "     bar     ")
 
-terminal_parsers =
-  TestList [TestLabel "test keywordP" tKeywordP,
-            TestLabel "test keywordP fail" tKeywordPFail,
-            TestLabel "test identifierP" tIdentifierP,
-            TestLabel "test identifierP spaces" tIdentifierPSpaces]
+tIdentifierPNoDigit =
+  TestCase (assertBool "identifierP doesn't allow a digit in first pos"
+           (isLeft $ parseIt identifierP "1foo"))
 
+-- TestLists
+terminalParserTests =
+  TestList [TestLabel "test keywordP" tKeywordP,
+            TestLabel "test keywordP fail" tKeywordPFail]
+
+identifierPTests =
+  TestList [TestLabel "test identifierP" tIdentifierP,
+            TestLabel "test identifierP spaces" tIdentifierPSpaces,
+            TestLabel "test identifierP no digit" tIdentifierPNoDigit]
 
 -- run in REPL with: runTestTT <TestList>
