@@ -1,3 +1,5 @@
+module Parser where
+
 import AST
 import qualified Text.Parsec as Ps
 
