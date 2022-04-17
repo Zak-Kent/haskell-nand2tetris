@@ -93,6 +93,7 @@ tSubCallNoExprs = TestCase (assertEqual "a sub routine with no exprs"
                                     (Symbol ")")))
                             $ parseIt subCallNameP "bar()    ")
 
+-- subCallClassOrVarP tests
 tSubCallClassWithExprs = TestCase (assertEqual "a class sub routine with exprs"
                                   (Right (SubCallClassOrVar (Identifier "foo")
                                          (Symbol ".")
@@ -116,6 +117,28 @@ tSubCallClassNoExprs = TestCase (assertEqual "a class sub routine with exprs"
                                   $ parseIt
                                     subCallClassOrVarP "  biz  .  baz  ()")
 
+-- subroutineCallP tests
+tClassSubroutineCall = TestCase (assertEqual "class sub routine"
+                                  (Right
+                                    (SubroutineCall
+                                     (SubCallClassOrVar (Identifier "what")
+                                      (Symbol ".")
+                                      (Identifier "huh")
+                                      (Symbol "(")
+                                      []
+                                      (Symbol ")"))))
+                                  $ parseIt subroutineCallP "what.huh()")
+
+tSubroutineCall = TestCase (assertEqual "sub routine name"
+                             (Right
+                               (SubroutineCall
+                                 (SubCallName (Identifier "things")
+                                   (Symbol "(")
+                                   [(Expr (IntegerConstant 1)
+                                     [((Op "+", (IntegerConstant 2)))])]
+                                   (Symbol ")"))))
+                                 $ parseIt subroutineCallP "things(1+2)")
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -132,10 +155,12 @@ exprPTests =
             TestLabel "exprP two term" tExprTwoTerms,
             TestLabel "exprP many terms" tExprManyTerms]
 
-subCallNamePTests =
+subroutineCallPTests =
   TestList [TestLabel "sub routine call with expr list" tBasicSubCall,
             TestLabel "sub rountne call with no exprs" tSubCallNoExprs,
             TestLabel "class sub routine with exprs" tSubCallClassWithExprs,
-            TestLabel "class sub routine no exprs" tSubCallClassNoExprs]
+            TestLabel "class sub routine no exprs" tSubCallClassNoExprs,
+            TestLabel "class subroutine call in termP" tClassSubroutineCall,
+            TestLabel "subroutine call in termP" tSubroutineCall]
 
 -- run in REPL with: runTestTT <TestList>
