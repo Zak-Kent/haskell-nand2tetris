@@ -59,6 +59,22 @@ tIdentifierPNoDigit =
   TestCase (assertBool "identifierP doesn't allow a digit in first pos"
            (isLeft $ parseIt identifierP "1foo"))
 
+-- exprP tests
+tExprOneTerm = TestCase (assertEqual "an expression with one term parses"
+                        (Right (Expr (IntegerConstant 5) []))
+                        $ parseIt exprP "5")
+
+tExprTwoTerms = TestCase (assertEqual "an expression with two terms parses"
+                        (Right (Expr (IntegerConstant 5)
+                                [((Op "+", (IntegerConstant 8)))]))
+                        $ parseIt exprP "5 + 8")
+
+tExprManyTerms = TestCase (assertEqual "an expression with many terms parses"
+                        (Right (Expr (VarName (Identifier "foo"))
+                                [((Op "=", (IntegerConstant 4))),
+                                 ((Op "+", (IntegerConstant 2)))]))
+                        $ parseIt exprP "foo = 4 + 2")
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "test keywordP" tKeywordP,
@@ -69,5 +85,10 @@ identifierPTests =
   TestList [TestLabel "test identifierP" tIdentifierP,
             TestLabel "test identifierP spaces" tIdentifierPSpaces,
             TestLabel "test identifierP no digit" tIdentifierPNoDigit]
+
+exprPTests =
+  TestList [TestLabel "test exprP one term" tExprOneTerm,
+            TestLabel "test exprP two term" tExprTwoTerms,
+            TestLabel "test exprP many terms" tExprManyTerms]
 
 -- run in REPL with: runTestTT <TestList>
