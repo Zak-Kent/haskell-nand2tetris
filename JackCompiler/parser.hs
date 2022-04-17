@@ -3,9 +3,6 @@ module Parser where
 import AST
 import qualified Text.Parsec as Ps
 
-chooseLit :: [String] -> Ps.Parsec String () String
-chooseLit xs = Ps.choice [Ps.try $ Ps.string x | x <- xs]
-
 wrapSps :: (Ps.Parsec String () a) -> (Ps.Parsec String () a)
 wrapSps p = do
   {- Allow spaces on either side of parser's target -}
@@ -13,6 +10,9 @@ wrapSps p = do
   out <- p
   Ps.spaces
   return out
+
+chooseLit :: [String] -> Ps.Parsec String () String
+chooseLit xs = wrapSps $ Ps.choice [Ps.try $ Ps.string x | x <- xs]
 
 -- Terminal element parsers
 keywordP :: Ps.Parsec String () Keyword

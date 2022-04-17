@@ -28,12 +28,23 @@ getErrorP p s = PsE.errorMessages $ fromLeft placeHolderErr err
 --                                          "test error" (1,1)))
 --                                   $ parseIt unaryOpP "x")
 
+-- Terminal element parser tests
+{-
+  These terminal element tests aren't comprehensive but all parsers
+  of this type use the same chooseLit helper func. The tests below
+  assert that these types of parsers can handle arbitrary whitespace
+  and fail when the don't recognize an input.
+-}
 tKeywordP = TestCase (assertEqual "keyword parse"
-                          (Right (Keyword "class"))
-                          $ parseIt keywordP "class")
+                       (Right (Keyword "class"))
+                       $ parseIt keywordP "   class   ")
 
 tKeywordPFail = TestCase (assertBool "keywordP fail"
-                         (isLeft $ parseIt keywordP "x"))
+                           (isLeft $ parseIt keywordP "x"))
+
+tSymbolP = TestCase (assertEqual "symbol parse"
+                      (Right (Symbol "+"))
+                      $ parseIt symbolP "+")
 
 -- identifierP tests
 tIdentifierP = TestCase (assertEqual "identifier parse"
@@ -51,7 +62,8 @@ tIdentifierPNoDigit =
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "test keywordP" tKeywordP,
-            TestLabel "test keywordP fail" tKeywordPFail]
+            TestLabel "test keywordP fail" tKeywordPFail,
+            TestLabel "test symbolP" tSymbolP]
 
 identifierPTests =
   TestList [TestLabel "test identifierP" tIdentifierP,
