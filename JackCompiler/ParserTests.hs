@@ -139,6 +139,16 @@ tSubroutineCall = TestCase (assertEqual "sub routine name"
                                    (Symbol ")"))))
                                  $ parseIt subroutineCallP "things(1+2)")
 
+-- varNameExprP tests
+tVarNameArrayAcccess = TestCase (assertEqual "array access using []"
+                                  (Right
+                                    (VarNameExpr (Identifier "foo")
+                                      (Symbol "[")
+                                      (Expr (IntegerConstant 1)
+                                        [((Op "+", (IntegerConstant 2)))])
+                                      (Symbol "]")))
+                                  $ parseIt varNameExprP "foo[1 + 2]")
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -162,5 +172,8 @@ subroutineCallPTests =
             TestLabel "class sub routine no exprs" tSubCallClassNoExprs,
             TestLabel "class subroutine call in termP" tClassSubroutineCall,
             TestLabel "subroutine call in termP" tSubroutineCall]
+
+varNameExprPTests =
+  TestList [TestLabel "array access foo[]" tVarNameArrayAcccess]
 
 -- run in REPL with: runTestTT <TestList>
