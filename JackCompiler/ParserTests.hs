@@ -66,13 +66,13 @@ tExprOneTerm = TestCase (assertEqual "an expression with one term parses"
 
 tExprTwoTerms = TestCase (assertEqual "an expression with two terms parses"
                         (Right (Expr (IntegerConstant 5)
-                                [((Op "+", (IntegerConstant 8)))]))
+                                [(Op "+", (IntegerConstant 8))]))
                         $ parseIt exprP "5 + 8")
 
 tExprManyTerms = TestCase (assertEqual "an expression with many terms parses"
                         (Right (Expr (VarName (Identifier "foo"))
-                                [((Op "=", (IntegerConstant 4))),
-                                 ((Op "+", (IntegerConstant 2)))]))
+                                [(Op "=", (IntegerConstant 4)),
+                                 (Op "+", (IntegerConstant 2))]))
                         $ parseIt exprP "foo = 4 + 2")
 
 -- subCallNameP tests
@@ -80,9 +80,9 @@ tBasicSubCall = TestCase (assertEqual "a sub routine with expr list parses"
                          (Right (SubCallName (Identifier "foo")
                                 (Symbol "(")
                                 [(Expr (IntegerConstant 5)
-                                  [((Op "+", (IntegerConstant 8)))]),
+                                  [(Op "+", (IntegerConstant 8))]),
                                   (Expr (IntegerConstant 10)
-                                  [((Op "-", (IntegerConstant 42)))])]
+                                  [(Op "-", (IntegerConstant 42))])]
                                 (Symbol ")")))
                            $ parseIt subCallNameP "foo (5+8, 10  - 42)")
 
@@ -100,9 +100,9 @@ tSubCallClassWithExprs = TestCase (assertEqual "a class sub routine with exprs"
                                          (Identifier "bar")
                                          (Symbol "(")
                                          [(Expr (VarName (Identifier  "bb"))
-                                           [((Op "=", (IntegerConstant 5)))]),
+                                           [(Op "=", (IntegerConstant 5))]),
                                           (Expr (IntegerConstant 10)
-                                           [((Op "-", (IntegerConstant 42)))])]
+                                           [(Op "-", (IntegerConstant 42))])]
                                          (Symbol ")")))
                                   $ parseIt
                                     subCallClassOrVarP "foo.bar(bb = 5, 10-42)")
@@ -135,7 +135,7 @@ tSubroutineCall = TestCase (assertEqual "sub routine name"
                                  (SubCallName (Identifier "things")
                                    (Symbol "(")
                                    [(Expr (IntegerConstant 1)
-                                     [((Op "+", (IntegerConstant 2)))])]
+                                     [(Op "+", (IntegerConstant 2))])]
                                    (Symbol ")"))))
                                  $ parseIt subroutineCallP "things(1+2)")
 
