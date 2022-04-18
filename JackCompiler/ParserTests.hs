@@ -161,6 +161,39 @@ tParensWrappingExpression = TestCase (assertEqual "parens wrapping expression"
                                            (Symbol ")")))
                                        $ parseIt parenExprP "(1+2 +   3  + 4)")
 
+-- termP tests
+tTermArrayAccess = TestCase (assertEqual "term array access: foo[1]"
+                              (Right
+                               (VarNameExpr (Identifier "foo")
+                                 (Symbol "[")
+                                 (Expr (IntegerConstant 1) [])
+                                 (Symbol "]")))
+                              $ parseIt termP "foo[1]")
+
+tTermMethodCall = TestCase (assertEqual "method call foo.bar()"
+                             (Right
+                               (SubroutineCall
+                                 (SubCallClassOrVar (Identifier "foo")
+                                   (Symbol ".")
+                                   (Identifier "bar")
+                                   (Symbol "(")
+                                   []
+                                   (Symbol ")"))))
+                           $ parseIt termP "foo.bar()")
+
+tTermSubroutineCall = TestCase (assertEqual "subroutine call baz()"
+                                 (Right
+                                   (SubroutineCall
+                                     (SubCallName (Identifier "baz")
+                                       (Symbol "(")
+                                       []
+                                       (Symbol ")"))))
+                                 $ parseIt termP "baz()")
+
+tTermVarName = TestCase (assertEqual "varname blarg"
+                          (Right (VarName (Identifier "blarg")))
+                          $ parseIt termP "blarg")
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -191,6 +224,12 @@ varNameExprPTests =
 parenExprPTests =
   TestList [TestLabel "parens wrapping an expr" tParensWrappingExpression]
 
+termPTests =
+  TestList [TestLabel "foo[1]" tTermArrayAccess,
+            TestLabel "foo.bar()" tTermMethodCall,
+            TestLabel "baz()" tTermSubroutineCall,
+            TestLabel "blarg" tTermVarName]
+
 runAllTests :: Test
 runAllTests =
   TestList
@@ -199,6 +238,7 @@ runAllTests =
                                    exprPTests,
                                    subroutineCallPTests,
                                    varNameExprPTests,
-                                   parenExprPTests]]
+                                   parenExprPTests,
+                                   termPTests]]
 
 -- run in REPL with: runTestTT (<TestList> | runAllTests)

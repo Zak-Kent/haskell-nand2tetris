@@ -125,9 +125,13 @@ subroutineCallP = do
 
 termP :: Ps.Parsec String () Term
 termP = do
-  t <- Ps.choice $ map Ps.try [integerConstantP, stringConstantP,
-                               keywordConstantP, varNameP, unaryOpP,
-                               varNameExprP, subroutineCallP, parenExprP]
+  {-
+    Order matters here, try the more selective parsers first to avoid a
+    partial parse of an input like foo.bar()
+  -}
+  t <- Ps.choice $ map Ps.try [varNameExprP, subroutineCallP, integerConstantP,
+                               stringConstantP, keywordConstantP, varNameP,
+                               unaryOpP, parenExprP]
   return t
 
 main :: IO ()
