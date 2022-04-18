@@ -145,9 +145,21 @@ tVarNameArrayAcccess = TestCase (assertEqual "array access using []"
                                     (VarNameExpr (Identifier "foo")
                                       (Symbol "[")
                                       (Expr (IntegerConstant 1)
-                                        [((Op "+", (IntegerConstant 2)))])
+                                        [(Op "+", (IntegerConstant 2))])
                                       (Symbol "]")))
                                   $ parseIt varNameExprP "foo[1 + 2]")
+
+-- parenExprP tests
+tParensWrappingExpression = TestCase (assertEqual "parens wrapping expression"
+                                       (Right
+                                         (ParenExpr
+                                           (Symbol "(")
+                                           (Expr (IntegerConstant 1)
+                                            [(Op "+", (IntegerConstant 2)),
+                                             (Op "+", (IntegerConstant 3)),
+                                             (Op "+", (IntegerConstant 4))])
+                                           (Symbol ")")))
+                                       $ parseIt parenExprP "(1+2 +   3  + 4)")
 
 -- TestLists
 terminalParserTests =
@@ -176,4 +188,17 @@ subroutineCallPTests =
 varNameExprPTests =
   TestList [TestLabel "array access foo[]" tVarNameArrayAcccess]
 
--- run in REPL with: runTestTT <TestList>
+parenExprPTests =
+  TestList [TestLabel "parens wrapping an expr" tParensWrappingExpression]
+
+runAllTests :: Test
+runAllTests =
+  TestList
+  $ concat $ [l | (TestList l) <- [terminalParserTests,
+                                   identifierPTests,
+                                   exprPTests,
+                                   subroutineCallPTests,
+                                   varNameExprPTests,
+                                   parenExprPTests]]
+
+-- run in REPL with: runTestTT (<TestList> | runAllTests)

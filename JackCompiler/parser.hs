@@ -111,6 +111,13 @@ varNameExprP = do
   rb <- wrapSps $ Ps.string "]"
   return (VarNameExpr vn (Symbol lb) expr (Symbol rb))
 
+parenExprP :: Ps.Parsec String () Term
+parenExprP = do
+  lp <- wrapSps $ Ps.string "("
+  expr <- exprP
+  rp <- wrapSps $ Ps.string ")"
+  return (ParenExpr (Symbol lp) expr (Symbol rp))
+
 subroutineCallP :: Ps.Parsec String () Term
 subroutineCallP = do
   sc <- Ps.choice $ map Ps.try [subCallNameP, subCallClassOrVarP]
@@ -120,7 +127,7 @@ termP :: Ps.Parsec String () Term
 termP = do
   t <- Ps.choice $ map Ps.try [integerConstantP, stringConstantP,
                                keywordConstantP, varNameP, unaryOpP,
-                               varNameExprP, subroutineCallP]
+                               varNameExprP, subroutineCallP, parenExprP]
   return t
 
 main :: IO ()
