@@ -15,6 +15,11 @@ chooseLit :: [String] -> Ps.Parsec String () String
 chooseLit xs = wrapSps $ Ps.choice [Ps.try $ Ps.string x | x <- xs]
 
 -- Terminal element parsers
+parseSym :: String -> Ps.Parsec String () Symbol
+parseSym s = do
+  r <- wrapSps $ Ps.string s
+  return (Symbol r)
+
 keywordP :: Ps.Parsec String () Keyword
 keywordP = do
   kw <- chooseLit ["class", "constructor", "function", "method", "field",
@@ -60,20 +65,20 @@ exprP = do
 subCallNameP :: Ps.Parsec String () SubCall
 subCallNameP = do
   scn <- wrapSps identifierP
-  lp <- wrapSps $ Ps.string "("
+  lp <- parseSym "("
   exprList <- wrapSps $ Ps.sepBy exprP $ Ps.string ","
-  rp <- wrapSps $ Ps.string ")"
-  return (SubCallName scn (Symbol lp) exprList (Symbol rp))
+  rp <- parseSym ")"
+  return (SubCallName scn lp exprList rp)
 
 subCallClassOrVarP :: Ps.Parsec String () SubCall
 subCallClassOrVarP = do
   n <- identifierP
   dot <- Ps.string "."
   sn <- identifierP
-  lp <- wrapSps $ Ps.string "("
+  lp <- parseSym "("
   exprList <- wrapSps $ Ps.sepBy exprP $ Ps.string ","
-  rp <- wrapSps $ Ps.string ")"
-  return (SubCallClassOrVar n (Symbol ".") sn (Symbol lp) exprList (Symbol rp))
+  rp <- parseSym ")"
+  return (SubCallClassOrVar n (Symbol ".") sn lp exprList rp)
 
 -- Term parsers
 keywordConstantP :: Ps.Parsec String () Term
@@ -106,17 +111,17 @@ varNameP = do
 varNameExprP :: Ps.Parsec String () Term
 varNameExprP = do
   vn <- identifierP
-  lb <- wrapSps $ Ps.string "["
+  lb <- parseSym "["
   expr <- exprP
-  rb <- wrapSps $ Ps.string "]"
-  return (VarNameExpr vn (Symbol lb) expr (Symbol rb))
+  rb <- parseSym "]"
+  return (VarNameExpr vn lb expr rb)
 
 parenExprP :: Ps.Parsec String () Term
 parenExprP = do
-  lp <- wrapSps $ Ps.string "("
+  lp <- parseSym "("
   expr <- exprP
-  rp <- wrapSps $ Ps.string ")"
-  return (ParenExpr (Symbol lp) expr (Symbol rp))
+  rp <- parseSym ")"
+  return (ParenExpr lp expr rp)
 
 subroutineCallP :: Ps.Parsec String () Term
 subroutineCallP = do
@@ -144,12 +149,12 @@ letVarNameP = do
 
 letP :: Ps.Parsec String () Statement
 letP = do
-  lt <- wrapSps $ Ps.string "let"
+  lt <- parseSym "let"
   lvn <- letVarNameP
-  eq <- wrapSps $ Ps.string "="
+  eq <- parseSym "="
   expr <- exprP
-  sc <- wrapSps $ Ps.string ";"
-  return (Let (Symbol lt) lvn (Symbol eq) expr (Symbol sc))
+  sc <- parseSym ";"
+  return (Let lt lvn eq expr sc)
 
 main :: IO ()
 main = do
