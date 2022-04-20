@@ -134,6 +134,23 @@ termP = do
                                unaryOpP, parenExprP]
   return t
 
+-- Statement parsers
+letVarNameP :: Ps.Parsec String () LetVarName
+letVarNameP = do
+  lvn <- Ps.choice $ map Ps.try [varNameExprP, varNameP]
+  return (vnToLetVn lvn)
+  where vnToLetVn (VarName i) = (LetVarName i)
+        vnToLetVn (VarNameExpr i lb expr rb) = (LetVarNameExpr i lb expr rb)
+
+letP :: Ps.Parsec String () Statement
+letP = do
+  lt <- wrapSps $ Ps.string "let"
+  lvn <- letVarNameP
+  eq <- wrapSps $ Ps.string "="
+  expr <- exprP
+  sc <- wrapSps $ Ps.string ";"
+  return (LetS (Let (Symbol lt) lvn (Symbol eq) expr (Symbol sc)))
+
 main :: IO ()
 main = do
   let blarg = Ps.parse identifierP "error file" "hah ahhaa4"

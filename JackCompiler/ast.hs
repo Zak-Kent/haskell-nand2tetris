@@ -5,6 +5,7 @@ data Keyword = Keyword String deriving (Show, Eq)
 data Symbol = Symbol String deriving (Show, Eq)
 data Identifier = Identifier String deriving (Show, Eq)
 data Op = Op String deriving (Show, Eq)
+type VarName = Identifier
 
 -- expression: term (op term)*
 data Expr = Expr Term [(Op, Term)] deriving (Show, Eq)
@@ -18,9 +19,21 @@ data SubCall = SubCallName Identifier Symbol [Expr] Symbol
 data Term = IntegerConstant Int
   | StringConstant String
   | KeywordConstant String
-  | VarName Identifier
+  | VarName VarName
   | UnaryOp String Term
-  | VarNameExpr Identifier Symbol Expr Symbol
+  | VarNameExpr VarName Symbol Expr Symbol
   | ParenExpr Symbol Expr Symbol
   | SubroutineCall SubCall
+  deriving (Show, Eq)
+
+-- letStatement: 'let' varName ('[' expr ']')? '=' expr ';'
+data LetVarName = LetVarName VarName
+--                          '['         ']'
+  | LetVarNameExpr VarName Symbol Expr Symbol
+  deriving (Show, Eq)
+--             'let'              '='         ';'
+data Let = Let Symbol LetVarName Symbol Expr Symbol
+  deriving (Show, Eq)
+
+data Statement = LetS Let
   deriving (Show, Eq)
