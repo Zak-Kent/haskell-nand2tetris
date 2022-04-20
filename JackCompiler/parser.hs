@@ -193,9 +193,16 @@ doP = do
   (SubroutineCall subCall) <- subroutineCallP
   return (Do d subCall)
 
+returnP :: Ps.Parsec String () Statement
+returnP = do
+  rt <- parseSym "return"
+  expr <- Ps.optionMaybe exprP
+  sc <- parseSym ";"
+  return (Return rt expr sc)
+
 statementP :: Ps.Parsec String () Statement
 statementP = do
-  s <- Ps.choice $ map Ps.try [letP, ifP, whileP, doP]
+  s <- Ps.choice $ map Ps.try [letP, ifP, whileP, doP, returnP]
   return s
 
 main :: IO ()

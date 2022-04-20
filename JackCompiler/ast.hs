@@ -41,4 +41,6 @@ data Statement =
   -- 'while' '(' expr ')' '{' statements '}'
   | While Symbol Symbol Expr Symbol Symbol Statements Symbol
   | Do Symbol SubCall
+  -- 'return' (expr)? ';'
+  | Return Symbol (Maybe Expr) Symbol
   deriving (Show, Eq)

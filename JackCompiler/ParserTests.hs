@@ -289,6 +289,23 @@ tDoSubCallStatement = TestCase (assertEqual "do what.huh()"
                                       (Symbol ")"))))
                                  $ parseIt doP "do what.huh()")
 
+tReturnStatementWithExpr = TestCase (assertEqual "return 1 + 2;"
+                                      (Right
+                                        (Return
+                                          (Symbol "return")
+                                          (Just (Expr (IntegerConstant 1)
+                                                  [(Op "+",IntegerConstant 2)]))
+                                          (Symbol ";")))
+                                      $ parseIt returnP "return 1 +     2;")
+
+tReturnNoExpr = TestCase (assertEqual "return;"
+                           (Right
+                             (Return
+                               (Symbol "return")
+                               Nothing
+                               (Symbol ";")))
+                         $ parseIt returnP "return;")
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -333,7 +350,9 @@ statmentTests =
             TestLabel "if ( 1 + 2 = 3) {let foo = 6;} else {let foo = 2;}"
               tIfStatementElse,
             TestLabel "while (foo = true) {let bar = 7;}" tWhileStatement,
-            TestLabel "do what.huh()" tDoSubCallStatement]
+            TestLabel "do what.huh()" tDoSubCallStatement,
+            TestLabel "return 1 + 2;" tReturnStatementWithExpr,
+            TestLabel "return;" tReturnNoExpr]
 
 
 runAllTests :: Test
