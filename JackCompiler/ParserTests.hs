@@ -197,25 +197,23 @@ tTermVarName = TestCase (assertEqual "varname blarg"
 -- statementP tests
 tLetStatement = TestCase (assertEqual "let statement with simple varname"
                            (Right
-                             (LetS
-                               (Let (Symbol "let")
-                                 (LetVarName (Identifier "foo"))
-                                 (Symbol "=")
-                                 (Expr (IntegerConstant 5) [])
-                                 (Symbol ";"))))
+                             (Let (Symbol "let")
+                               (LetVarName (Identifier "foo"))
+                               (Symbol "=")
+                               (Expr (IntegerConstant 5) [])
+                               (Symbol ";")))
                          $ parseIt letP "let foo = 5;")
 
 tLetStatementWExpr = TestCase (assertEqual "let statement with expr varname"
                                 (Right
-                                  (LetS
-                                    (Let (Symbol "let")
-                                      (LetVarNameExpr (Identifier "foo")
-                                        (Symbol "[")
-                                        (Expr (IntegerConstant 1) [])
-                                        (Symbol "]"))
-                                      (Symbol "=")
-                                      (Expr (IntegerConstant 5) [])
-                                      (Symbol ";"))))
+                                  (Let (Symbol "let")
+                                    (LetVarNameExpr (Identifier "foo")
+                                      (Symbol "[")
+                                      (Expr (IntegerConstant 1) [])
+                                      (Symbol "]"))
+                                    (Symbol "=")
+                                    (Expr (IntegerConstant 5) [])
+                                    (Symbol ";")))
                          $ parseIt letP "let foo[1] = 5;")
 
 -- TestLists

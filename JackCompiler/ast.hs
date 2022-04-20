@@ -26,14 +26,11 @@ data Term = IntegerConstant Int
   | SubroutineCall SubCall
   deriving (Show, Eq)
 
--- letStatement: 'let' varName ('[' expr ']')? '=' expr ';'
 data LetVarName = LetVarName VarName
---                          '['         ']'
   | LetVarNameExpr VarName Symbol Expr Symbol
   deriving (Show, Eq)
---             'let'              '='         ';'
-data Let = Let Symbol LetVarName Symbol Expr Symbol
-  deriving (Show, Eq)
 
-data Statement = LetS Let
+data Statement =
+  -- letStatement: 'let' varName ('[' expr ']')? '=' expr ';'
+  Let Symbol LetVarName Symbol Expr Symbol
   deriving (Show, Eq)

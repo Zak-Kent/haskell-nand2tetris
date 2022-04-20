@@ -149,7 +149,7 @@ letP = do
   eq <- wrapSps $ Ps.string "="
   expr <- exprP
   sc <- wrapSps $ Ps.string ";"
-  return (LetS (Let (Symbol lt) lvn (Symbol eq) expr (Symbol sc)))
+  return (Let (Symbol lt) lvn (Symbol eq) expr (Symbol sc))
 
 main :: IO ()
 main = do
