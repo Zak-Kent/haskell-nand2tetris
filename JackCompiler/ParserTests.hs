@@ -261,6 +261,22 @@ tIfStatementElse = TestCase (assertEqual "if statement with else"
                               $ parseIt ifP
                               "if ( 1 + 2 = 3) {let foo = 6;} else {let foo = 2;}")
 
+tWhileStatement = TestCase (assertEqual "while block"
+                             (Right
+                               (While (Symbol "while")
+                                 (Symbol "(")
+                                 (Expr (VarName (Identifier "foo"))
+                                   [(Op "=",KeywordConstant "true")])
+                                 (Symbol ")")
+                                 (Symbol "{")
+                                 [Let (Symbol "let")
+                                   (LetVarName (Identifier "bar"))
+                                   (Symbol "=")
+                                   (Expr (IntegerConstant 7) [])
+                                   (Symbol ";")]
+                                 (Symbol "}")))
+                             $ parseIt whileP "while (foo = true) {let bar = 7;}")
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -298,12 +314,14 @@ termPTests =
             TestLabel "blarg" tTermVarName]
 
 -- Statement tests
-letStatmentTests =
+statmentTests =
   TestList [TestLabel "let foo = 5;" tLetStatement,
             TestLabel "let foo[1] = 5;" tLetStatementWExpr,
             TestLabel "if (1 + 2 = 3) {let foo = 6;}" tIfStatementNoElse,
             TestLabel "if ( 1 + 2 = 3) {let foo = 6;} else {let foo = 2;}"
-              tIfStatementElse]
+              tIfStatementElse,
+            TestLabel "while (foo = true) {let bar = 7;}" tWhileStatement]
+
 
 runAllTests :: Test
 runAllTests =
@@ -315,6 +333,6 @@ runAllTests =
                                    varNameExprPTests,
                                    parenExprPTests,
                                    termPTests,
-                                   letStatmentTests]]
+                                   statmentTests]]
 
 -- run in REPL with: runTestTT (<TestList> | runAllTests)

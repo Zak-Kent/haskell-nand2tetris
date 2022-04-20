@@ -38,4 +38,6 @@ data Statement =
   Let Symbol LetVarName Symbol Expr Symbol
   -- 'if' '(' expr ')' '{' statements '}' ('else' '{' statements '}')?
   | If Symbol Symbol Expr Symbol Symbol Statements Symbol (Maybe Else)
+  -- 'while' '(' expr ')' '{' statements '}'
+  | While Symbol Symbol Expr Symbol Symbol Statements Symbol
   deriving (Show, Eq)

@@ -176,9 +176,20 @@ ifP = do
   els <- Ps.optionMaybe elseP
   return (If i lp expr rp lc stmts rc els)
 
+whileP :: Ps.Parsec String () Statement
+whileP = do
+  wh <- parseSym "while"
+  lp <- parseSym "("
+  expr <- exprP
+  rp <- parseSym ")"
+  lc <- parseSym "{"
+  stmts <- Ps.many statementP
+  rc <- parseSym "}"
+  return (While wh lp expr rp lc stmts rc)
+
 statementP :: Ps.Parsec String () Statement
 statementP = do
-  s <- Ps.choice $ map Ps.try [letP, ifP]
+  s <- Ps.choice $ map Ps.try [letP, ifP, whileP]
   return s
 
 main :: IO ()
