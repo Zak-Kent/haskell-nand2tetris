@@ -40,4 +40,5 @@ data Statement =
   | If Symbol Symbol Expr Symbol Symbol Statements Symbol (Maybe Else)
   -- 'while' '(' expr ')' '{' statements '}'
   | While Symbol Symbol Expr Symbol Symbol Statements Symbol
+  | Do Symbol SubCall
   deriving (Show, Eq)

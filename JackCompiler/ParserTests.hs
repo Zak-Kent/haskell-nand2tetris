@@ -277,6 +277,18 @@ tWhileStatement = TestCase (assertEqual "while block"
                                  (Symbol "}")))
                              $ parseIt whileP "while (foo = true) {let bar = 7;}")
 
+tDoSubCallStatement = TestCase (assertEqual "do what.huh()"
+                                 (Right
+                                   (Do
+                                     (Symbol "do")
+                                     (SubCallClassOrVar (Identifier "what")
+                                      (Symbol ".")
+                                      (Identifier "huh")
+                                      (Symbol "(")
+                                      []
+                                      (Symbol ")"))))
+                                 $ parseIt doP "do what.huh()")
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -320,7 +332,8 @@ statmentTests =
             TestLabel "if (1 + 2 = 3) {let foo = 6;}" tIfStatementNoElse,
             TestLabel "if ( 1 + 2 = 3) {let foo = 6;} else {let foo = 2;}"
               tIfStatementElse,
-            TestLabel "while (foo = true) {let bar = 7;}" tWhileStatement]
+            TestLabel "while (foo = true) {let bar = 7;}" tWhileStatement,
+            TestLabel "do what.huh()" tDoSubCallStatement]
 
 
 runAllTests :: Test

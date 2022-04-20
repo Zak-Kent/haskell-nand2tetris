@@ -187,9 +187,15 @@ whileP = do
   rc <- parseSym "}"
   return (While wh lp expr rp lc stmts rc)
 
+doP :: Ps.Parsec String () Statement
+doP = do
+  d <- parseSym "do"
+  (SubroutineCall subCall) <- subroutineCallP
+  return (Do d subCall)
+
 statementP :: Ps.Parsec String () Statement
 statementP = do
-  s <- Ps.choice $ map Ps.try [letP, ifP, whileP]
+  s <- Ps.choice $ map Ps.try [letP, ifP, whileP, doP]
   return s
 
 main :: IO ()
