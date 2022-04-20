@@ -216,6 +216,51 @@ tLetStatementWExpr = TestCase (assertEqual "let statement with expr varname"
                                     (Symbol ";")))
                          $ parseIt letP "let foo[1] = 5;")
 
+tIfStatementNoElse = TestCase (assertEqual "if statement no else"
+                                (Right
+                                  (If (Symbol "if")
+                                    (Symbol "(")
+                                    (Expr (IntegerConstant 1)
+                                      [(Op "+",IntegerConstant 2),
+                                       (Op "=",IntegerConstant 3)])
+                                    (Symbol ")")
+                                    (Symbol "{")
+                                    [Let (Symbol "let")
+                                      (LetVarName (Identifier "foo"))
+                                      (Symbol "=")
+                                      (Expr (IntegerConstant 6) [])
+                                      (Symbol ";")]
+                                    (Symbol "}")
+                                    Nothing))
+                                $ parseIt ifP "if (1 + 2 = 3) {let foo = 6;}")
+
+tIfStatementElse = TestCase (assertEqual "if statement with else"
+                              (Right
+                                (If (Symbol "if")
+                                  (Symbol "(")
+                                  (Expr (IntegerConstant 1)
+                                    [(Op "+",IntegerConstant 2),
+                                     (Op "=",IntegerConstant 3)])
+                                  (Symbol ")")
+                                  (Symbol "{")
+                                  [Let (Symbol "let")
+                                    (LetVarName (Identifier "foo"))
+                                    (Symbol "=")
+                                    (Expr (IntegerConstant 6) [])
+                                    (Symbol ";")]
+                                  (Symbol "}")
+                                  (Just
+                                    (Else (Symbol "else")
+                                      (Symbol "{")
+                                      [Let (Symbol "let")
+                                        (LetVarName (Identifier "foo"))
+                                        (Symbol "=")
+                                        (Expr (IntegerConstant 2) [])
+                                        (Symbol ";")]
+                                      (Symbol "}")))))
+                              $ parseIt ifP
+                              "if ( 1 + 2 = 3) {let foo = 6;} else {let foo = 2;}")
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -254,8 +299,11 @@ termPTests =
 
 -- Statement tests
 letStatmentTests =
-  TestList [TestLabel "let statment: let foo = 5;" tLetStatement,
-            TestLabel "let statment: let foo[1] = 5;" tLetStatementWExpr]
+  TestList [TestLabel "let foo = 5;" tLetStatement,
+            TestLabel "let foo[1] = 5;" tLetStatementWExpr,
+            TestLabel "if (1 + 2 = 3) {let foo = 6;}" tIfStatementNoElse,
+            TestLabel "if ( 1 + 2 = 3) {let foo = 6;} else {let foo = 2;}"
+              tIfStatementElse]
 
 runAllTests :: Test
 runAllTests =

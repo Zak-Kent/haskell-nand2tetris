@@ -30,7 +30,12 @@ data LetVarName = LetVarName VarName
   | LetVarNameExpr VarName Symbol Expr Symbol
   deriving (Show, Eq)
 
+data Else = Else Symbol Symbol Statements Symbol deriving (Show, Eq)
+
+type Statements = [Statement]
 data Statement =
-  -- letStatement: 'let' varName ('[' expr ']')? '=' expr ';'
+  -- 'let' varName ('[' expr ']')? '=' expr ';'
   Let Symbol LetVarName Symbol Expr Symbol
+  -- 'if' '(' expr ')' '{' statements '}' ('else' '{' statements '}')?
+  | If Symbol Symbol Expr Symbol Symbol Statements Symbol (Maybe Else)
   deriving (Show, Eq)

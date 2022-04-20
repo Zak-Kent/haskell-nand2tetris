@@ -156,6 +156,31 @@ letP = do
   sc <- parseSym ";"
   return (Let lt lvn eq expr sc)
 
+elseP :: Ps.Parsec String () Else
+elseP = do
+  els <- parseSym "else"
+  lc <- parseSym "{"
+  stmts <- Ps.many statementP
+  rc <- parseSym "}"
+  return (Else els lc stmts rc)
+
+ifP :: Ps.Parsec String () Statement
+ifP = do
+  i <- parseSym "if"
+  lp <- parseSym "("
+  expr <- exprP
+  rp <- parseSym ")"
+  lc <- parseSym "{"
+  stmts <- Ps.many statementP
+  rc <- parseSym "}"
+  els <- Ps.optionMaybe elseP
+  return (If i lp expr rp lc stmts rc els)
+
+statementP :: Ps.Parsec String () Statement
+statementP = do
+  s <- Ps.choice $ map Ps.try [letP, ifP]
+  return s
+
 main :: IO ()
 main = do
   let blarg = Ps.parse identifierP "error file" "hah ahhaa4"
