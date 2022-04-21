@@ -44,3 +44,11 @@ data Statement =
   -- 'return' (expr)? ';'
   | Return Symbol (Maybe Expr) Symbol
   deriving (Show, Eq)
+
+data Type = TKeyword Keyword
+  | TIdentifier Identifier
+  deriving (Show, Eq)
+
+-- 'var' type varName (',' varName)* ';'
+data VarDec = VarDec Symbol Type VarName [VarName] Symbol
+  deriving (Show, Eq)

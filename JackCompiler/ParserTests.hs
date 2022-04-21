@@ -306,6 +306,26 @@ tReturnNoExpr = TestCase (assertEqual "return;"
                                (Symbol ";")))
                          $ parseIt returnP "return;")
 
+-- Program structure tests
+tVarDecOneVar = TestCase (assertEqual "var int foo;"
+                           (Right
+                             (VarDec (Symbol "var")
+                               (TKeyword (Keyword "int"))
+                               (Identifier "foo")
+                               []
+                               (Symbol ";")))
+                           $ parseIt varDecP "var int foo;")
+
+tVarDecManyVars = TestCase (assertEqual "var boolean foo, bar, baz;"
+                             (Right
+                               (VarDec (Symbol "var")
+                               (TKeyword (Keyword "boolean"))
+                               (Identifier "foo")
+                               [(Identifier "bar"),
+                                (Identifier "baz")]
+                               (Symbol ";")))
+                           $ parseIt varDecP "var boolean foo   , bar, baz;")
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -354,6 +374,10 @@ statmentTests =
             TestLabel "return 1 + 2;" tReturnStatementWithExpr,
             TestLabel "return;" tReturnNoExpr]
 
+-- Program structure tests
+structureTests =
+  TestList [TestLabel "var int foo;" tVarDecOneVar,
+            TestLabel "var boolean foo, bar, baz;" tVarDecManyVars]
 
 runAllTests :: Test
 runAllTests =
@@ -365,6 +389,7 @@ runAllTests =
                                    varNameExprPTests,
                                    parenExprPTests,
                                    termPTests,
-                                   statmentTests]]
+                                   statmentTests,
+                                   structureTests]]
 
 -- run in REPL with: runTestTT (<TestList> | runAllTests)

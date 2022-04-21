@@ -210,6 +210,33 @@ statementP = do
   s <- Ps.choice $ map Ps.try [letP, ifP, whileP, doP, returnP]
   return s
 
+-- Program structure parsers
+typeP :: Ps.Parsec String () Type
+typeP = do
+  tName <- Ps.choice $ map Ps.try [tParseKWs, tIdentifierP]
+  return tName
+  -- the type juggling below is done to get the same return type from
+  -- keywordsP and identifierP so they can be used with Ps.choice
+  where tParseKWs = do
+          kw <- keywordsP ["int", "char", "boolean"]
+          return (TKeyword kw)
+        tIdentifierP = do
+          i <- identifierP
+          return (TIdentifier i)
+
+varDecP :: Ps.Parsec String () VarDec
+varDecP = do
+  var <- symP "var"
+  typ <- typeP
+  varN <- identifierP
+  Ps.spaces
+  Ps.optional $ Ps.string ","
+  -- varNList is dropping all the ',' symbols, you'll need to account for
+  -- this in the xml generation
+  varNList <- wrapSps $ Ps.sepBy identifierP $ Ps.string ","
+  sc <- symP ";"
+  return (VarDec var typ varN varNList sc)
+
 main :: IO ()
 main = do
   let blarg = Ps.parse identifierP "error file" "hah ahhaa4"
