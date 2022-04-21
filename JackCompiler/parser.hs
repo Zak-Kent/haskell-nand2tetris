@@ -15,10 +15,15 @@ chooseLit :: [String] -> Ps.Parsec String () String
 chooseLit xs = wrapSps $ Ps.choice [Ps.try $ Ps.string x | x <- xs]
 
 -- Terminal element parsers
-parseSym :: String -> Ps.Parsec String () Symbol
-parseSym s = do
+symP :: String -> Ps.Parsec String () Symbol
+symP s = do
   r <- wrapSps $ Ps.string s
   return (Symbol r)
+
+keywordsP :: [String] -> Ps.Parsec String () Keyword
+keywordsP xs = do
+  kw <- chooseLit xs
+  return (Keyword kw)
 
 keywordP :: Ps.Parsec String () Keyword
 keywordP = do
@@ -65,9 +70,9 @@ exprP = do
 subCallNameP :: Ps.Parsec String () SubCall
 subCallNameP = do
   scn <- wrapSps identifierP
-  lp <- parseSym "("
+  lp <- symP "("
   exprList <- wrapSps $ Ps.sepBy exprP $ Ps.string ","
-  rp <- parseSym ")"
+  rp <- symP ")"
   return (SubCallName scn lp exprList rp)
 
 subCallClassOrVarP :: Ps.Parsec String () SubCall
@@ -75,9 +80,9 @@ subCallClassOrVarP = do
   n <- identifierP
   dot <- Ps.string "."
   sn <- identifierP
-  lp <- parseSym "("
+  lp <- symP "("
   exprList <- wrapSps $ Ps.sepBy exprP $ Ps.string ","
-  rp <- parseSym ")"
+  rp <- symP ")"
   return (SubCallClassOrVar n (Symbol ".") sn lp exprList rp)
 
 -- Term parsers
@@ -111,16 +116,16 @@ varNameP = do
 varNameExprP :: Ps.Parsec String () Term
 varNameExprP = do
   vn <- identifierP
-  lb <- parseSym "["
+  lb <- symP "["
   expr <- exprP
-  rb <- parseSym "]"
+  rb <- symP "]"
   return (VarNameExpr vn lb expr rb)
 
 parenExprP :: Ps.Parsec String () Term
 parenExprP = do
-  lp <- parseSym "("
+  lp <- symP "("
   expr <- exprP
-  rp <- parseSym ")"
+  rp <- symP ")"
   return (ParenExpr lp expr rp)
 
 subroutineCallP :: Ps.Parsec String () Term
@@ -149,55 +154,55 @@ letVarNameP = do
 
 letP :: Ps.Parsec String () Statement
 letP = do
-  lt <- parseSym "let"
+  lt <- symP "let"
   lvn <- letVarNameP
-  eq <- parseSym "="
+  eq <- symP "="
   expr <- exprP
-  sc <- parseSym ";"
+  sc <- symP ";"
   return (Let lt lvn eq expr sc)
 
 elseP :: Ps.Parsec String () Else
 elseP = do
-  els <- parseSym "else"
-  lc <- parseSym "{"
+  els <- symP "else"
+  lc <- symP "{"
   stmts <- Ps.many statementP
-  rc <- parseSym "}"
+  rc <- symP "}"
   return (Else els lc stmts rc)
 
 ifP :: Ps.Parsec String () Statement
 ifP = do
-  i <- parseSym "if"
-  lp <- parseSym "("
+  i <- symP "if"
+  lp <- symP "("
   expr <- exprP
-  rp <- parseSym ")"
-  lc <- parseSym "{"
+  rp <- symP ")"
+  lc <- symP "{"
   stmts <- Ps.many statementP
-  rc <- parseSym "}"
+  rc <- symP "}"
   els <- Ps.optionMaybe elseP
   return (If i lp expr rp lc stmts rc els)
 
 whileP :: Ps.Parsec String () Statement
 whileP = do
-  wh <- parseSym "while"
-  lp <- parseSym "("
+  wh <- symP "while"
+  lp <- symP "("
   expr <- exprP
-  rp <- parseSym ")"
-  lc <- parseSym "{"
+  rp <- symP ")"
+  lc <- symP "{"
   stmts <- Ps.many statementP
-  rc <- parseSym "}"
+  rc <- symP "}"
   return (While wh lp expr rp lc stmts rc)
 
 doP :: Ps.Parsec String () Statement
 doP = do
-  d <- parseSym "do"
+  d <- symP "do"
   (SubroutineCall subCall) <- subroutineCallP
   return (Do d subCall)
 
 returnP :: Ps.Parsec String () Statement
 returnP = do
-  rt <- parseSym "return"
+  rt <- symP "return"
   expr <- Ps.optionMaybe exprP
-  sc <- parseSym ";"
+  sc <- symP ";"
   return (Return rt expr sc)
 
 statementP :: Ps.Parsec String () Statement
