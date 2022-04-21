@@ -52,3 +52,7 @@ data Type = TKeyword Keyword
 -- 'var' type varName (',' varName)* ';'
 data VarDec = VarDec Symbol Type VarName [VarName] Symbol
   deriving (Show, Eq)
+
+-- '{' varDec* statements '}'
+data SubroutineBody = SubroutineBody Symbol [VarDec] Statements Symbol
+  deriving (Show, Eq)

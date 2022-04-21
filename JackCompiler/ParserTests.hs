@@ -326,6 +326,48 @@ tVarDecManyVars = TestCase (assertEqual "var boolean foo, bar, baz;"
                                (Symbol ";")))
                            $ parseIt varDecP "var boolean foo   , bar, baz;")
 
+tSubroutineBody = TestCase (assertEqual "a simple subroutine body"
+                             (Right
+                               (SubroutineBody (Symbol "{")
+                                 [VarDec (Symbol "var")
+                                   (TKeyword (Keyword "int"))
+                                   (Identifier "foo")
+                                   []
+                                   (Symbol ";"),
+                                   VarDec (Symbol "var")
+                                   (TKeyword (Keyword "boolean"))
+                                   (Identifier "bar")
+                                   [] (Symbol ";")]
+                                 [Let (Symbol "let")
+                                   (LetVarName (Identifier "foo"))
+                                   (Symbol "=")
+                                   (Expr (IntegerConstant 5) [])
+                                   (Symbol ";"),
+                                  Let (Symbol "let")
+                                   (LetVarName (Identifier "bar"))
+                                   (Symbol "=")
+                                   (Expr (KeywordConstant "true") [])
+                                   (Symbol ";")]
+                                 (Symbol "}")))
+                             $ parseIt subroutineBodyP
+                             "{var int foo; var boolean bar; let foo = 5; let bar = true;}")
+
+tSubroutineBodyNoVars = TestCase (assertEqual "subroutine body with no vars"
+                                  (Right
+                                    (SubroutineBody (Symbol "{")
+                                      []
+                                      [(Do
+                                         (Symbol "do")
+                                         (SubCallClassOrVar (Identifier "what")
+                                           (Symbol ".")
+                                           (Identifier "huh")
+                                           (Symbol "(")
+                                           []
+                                           (Symbol ")")))]
+                                     (Symbol "}")))
+                                 $ parseIt subroutineBodyP
+                                 "{   do what.huh() }")
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -377,7 +419,9 @@ statmentTests =
 -- Program structure tests
 structureTests =
   TestList [TestLabel "var int foo;" tVarDecOneVar,
-            TestLabel "var boolean foo, bar, baz;" tVarDecManyVars]
+            TestLabel "var boolean foo, bar, baz;" tVarDecManyVars,
+            TestLabel "simple subroutine body" tSubroutineBody,
+            TestLabel "subroutine body with no vars" tSubroutineBodyNoVars]
 
 runAllTests :: Test
 runAllTests =

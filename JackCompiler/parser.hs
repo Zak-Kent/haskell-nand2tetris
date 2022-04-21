@@ -237,6 +237,14 @@ varDecP = do
   sc <- symP ";"
   return (VarDec var typ varN varNList sc)
 
+subroutineBodyP :: Ps.Parsec String () SubroutineBody
+subroutineBodyP = do
+  lc <- symP "{"
+  varDecs <- Ps.many varDecP
+  statments <- Ps.many statementP
+  rc <- symP "}"
+  return (SubroutineBody lc varDecs statments rc)
+
 main :: IO ()
 main = do
   let blarg = Ps.parse identifierP "error file" "hah ahhaa4"
