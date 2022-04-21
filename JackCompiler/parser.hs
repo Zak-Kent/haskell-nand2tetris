@@ -245,6 +245,19 @@ subroutineBodyP = do
   rc <- symP "}"
   return (SubroutineBody lc varDecs statments rc)
 
+paramListP :: Ps.Parsec String () ParameterList
+paramListP = do
+  param <- paramP
+  Ps.spaces
+  Ps.optional $ Ps.string ","
+  params <- wrapSps $ Ps.sepBy paramP $ Ps.string ","
+  return (ParameterList $ param:params)
+  where paramP = do
+          typ <- typeP
+          Ps.spaces
+          varN <- identifierP
+          return (typ, varN)
+
 main :: IO ()
 main = do
   let blarg = Ps.parse identifierP "error file" "hah ahhaa4"

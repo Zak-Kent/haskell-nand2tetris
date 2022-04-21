@@ -368,6 +368,24 @@ tSubroutineBodyNoVars = TestCase (assertEqual "subroutine body with no vars"
                                  $ parseIt subroutineBodyP
                                  "{   do what.huh() }")
 
+tParamListOneParam = TestCase (assertEqual "param list with one param"
+                                (Right
+                                  (ParameterList
+                                    [(TKeyword (Keyword "int"),
+                                      Identifier "foo")]))
+                                $ parseIt paramListP "int foo")
+
+tParamListManyParams = TestCase (assertEqual "param list with one param"
+                                  (Right
+                                  (ParameterList
+                                    [(TKeyword (Keyword "int"),
+                                      Identifier "foo"),
+                                     (TKeyword (Keyword "boolean"),
+                                      Identifier "bar"),
+                                     (TIdentifier (Identifier "classFoo"),
+                                      Identifier "baz")]))
+                                $ parseIt paramListP "int foo, boolean bar, classFoo baz")
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -421,7 +439,9 @@ structureTests =
   TestList [TestLabel "var int foo;" tVarDecOneVar,
             TestLabel "var boolean foo, bar, baz;" tVarDecManyVars,
             TestLabel "simple subroutine body" tSubroutineBody,
-            TestLabel "subroutine body with no vars" tSubroutineBodyNoVars]
+            TestLabel "subroutine body with no vars" tSubroutineBodyNoVars,
+            TestLabel "param list with on param" tParamListOneParam,
+            TestLabel "param list with many params" tParamListManyParams]
 
 runAllTests :: Test
 runAllTests =

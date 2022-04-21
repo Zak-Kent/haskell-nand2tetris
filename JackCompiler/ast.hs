@@ -56,3 +56,7 @@ data VarDec = VarDec Symbol Type VarName [VarName] Symbol
 -- '{' varDec* statements '}'
 data SubroutineBody = SubroutineBody Symbol [VarDec] Statements Symbol
   deriving (Show, Eq)
+
+-- ((type varName) (',' type varName)*)?
+data ParameterList = ParameterList [(Type, VarName)]
+  deriving (Show, Eq)
