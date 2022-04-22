@@ -50,7 +50,7 @@ data Type = TKeyword Keyword
   deriving (Show, Eq)
 
 -- 'var' type varName (',' varName)* ';'
-data VarDec = VarDec Symbol Type VarName [VarName] Symbol
+data VarDec = VarDec Keyword Type VarName [VarName] Symbol
   deriving (Show, Eq)
 
 -- '{' varDec* statements '}'

@@ -223,7 +223,7 @@ typeOrKwP kws = do
 
 varDecP :: Ps.Parsec String () VarDec
 varDecP = do
-  var <- symP "var"
+  var <- keywordP "var"
   typ <- (typeOrKwP ["int", "char", "boolean"])
   varN <- identifierP
   Ps.spaces

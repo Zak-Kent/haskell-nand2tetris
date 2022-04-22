@@ -309,7 +309,7 @@ tReturnNoExpr = TestCase (assertEqual "return;"
 -- Program structure tests
 tVarDecOneVar = TestCase (assertEqual "var int foo;"
                            (Right
-                             (VarDec (Symbol "var")
+                             (VarDec (Keyword "var")
                                (TKeyword (Keyword "int"))
                                (Identifier "foo")
                                []
@@ -318,7 +318,7 @@ tVarDecOneVar = TestCase (assertEqual "var int foo;"
 
 tVarDecManyVars = TestCase (assertEqual "var boolean foo, bar, baz;"
                              (Right
-                               (VarDec (Symbol "var")
+                               (VarDec (Keyword "var")
                                (TKeyword (Keyword "boolean"))
                                (Identifier "foo")
                                [(Identifier "bar"),
@@ -329,12 +329,12 @@ tVarDecManyVars = TestCase (assertEqual "var boolean foo, bar, baz;"
 tSubroutineBody = TestCase (assertEqual "a simple subroutine body"
                              (Right
                                (SubroutineBody (Symbol "{")
-                                 [VarDec (Symbol "var")
+                                 [VarDec (Keyword "var")
                                    (TKeyword (Keyword "int"))
                                    (Identifier "foo")
                                    []
                                    (Symbol ";"),
-                                   VarDec (Symbol "var")
+                                   VarDec (Keyword "var")
                                    (TKeyword (Keyword "boolean"))
                                    (Identifier "bar")
                                    [] (Symbol ";")]
@@ -399,7 +399,7 @@ tSubroutineDec = TestCase (assertEqual "subroutine declaration"
                                      Identifier "arg2")])
                                 (Symbol ")")
                                 (SubroutineBody (Symbol "{")
-                                  [VarDec (Symbol "var")
+                                  [VarDec (Keyword "var")
                                     (TKeyword (Keyword "int"))
                                     (Identifier "baz")
                                     []
