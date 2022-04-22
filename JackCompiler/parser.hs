@@ -282,6 +282,15 @@ classVarDecP = do
   sc <- symP ";"
   return (ClassVarDec kw typ varN varNList sc)
 
+classP :: Ps.Parsec String () Class
+classP = do
+  cls <- keywordsP ["class"]
+  clsName <- identifierP
+  lc <- symP "{"
+  clsVarDecs <- Ps.many classVarDecP
+  subRDecs <- Ps.many subroutineDecP
+  rc <- symP "}"
+  return (Class cls clsName lc clsVarDecs subRDecs rc)
 
 main :: IO ()
 main = do

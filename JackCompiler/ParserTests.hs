@@ -427,6 +427,49 @@ tClassVarDecManyVars = TestCase (assertEqual "var boolean foo, bar, baz;"
                                      (Symbol ";")))
                            $ parseIt classVarDecP "static int foo, bar;")
 
+tClassWithBasicElems = TestCase (assertEqual "a basic class"
+                                 (Right
+                                  (Class (Keyword "class")
+                                    (Identifier "foo")
+                                    (Symbol "{")
+                                    [ClassVarDec
+                                      (Keyword "static")
+                                      (TKeyword (Keyword "int"))
+                                      (Identifier "foo")
+                                      [Identifier "bar"]
+                                      (Symbol ";"),
+                                     ClassVarDec
+                                      (Keyword "static")
+                                      (TKeyword (Keyword "boolean"))
+                                      (Identifier "baz")
+                                      [Identifier "buz"]
+                                      (Symbol ";")]
+                                    [SubroutineDec (Keyword "method")
+                                      (TKeyword (Keyword "void"))
+                                      (Identifier "doFoo")
+                                      (Symbol "(")
+                                      (ParameterList
+                                        [(TKeyword (Keyword "int"),
+                                          Identifier "foo"),
+                                          (TKeyword (Keyword "boolean"),
+                                           Identifier "baz")])
+                                      (Symbol ")")
+                                      (SubroutineBody
+                                        (Symbol "{")
+                                        []
+                                        [Return (Symbol "return")
+                                          (Just
+                                            (Expr
+                                              (VarName (Identifier "foo")) []))
+                                          (Symbol ";")]
+                                        (Symbol "}"))]
+                                    (Symbol "}")))
+                           $ parseIt classP "class foo { static int foo, bar; \
+                                           \ static boolean baz, buz; \
+                                           \ method void doFoo (int foo, boolean baz) \
+                                           \ { return foo; }}")
+
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -484,7 +527,8 @@ structureTests =
             TestLabel "subroutine body with no vars" tSubroutineBodyNoVars,
             TestLabel "param list with on param" tParamListOneParam,
             TestLabel "param list with many params" tParamListManyParams,
-            TestLabel "subroutine declaration" tSubroutineDec]
+            TestLabel "subroutine declaration" tSubroutineDec,
+            TestLabel "basic class" tClassWithBasicElems]
 
 runAllTests :: Test
 runAllTests =

@@ -70,3 +70,7 @@ data SubroutineDec = SubroutineDec Keyword Type Identifier
 -- ('static' 'field') type varName (',' varName)* ';'
 data ClassVarDec = ClassVarDec Keyword Type VarName [VarName] Symbol
   deriving (Show, Eq)
+
+-- 'class' className '{' classVarDec* subroutineDec* '}'
+data Class = Class Keyword Identifier Symbol [ClassVarDec] [SubroutineDec] Symbol
+  deriving (Show, Eq)
