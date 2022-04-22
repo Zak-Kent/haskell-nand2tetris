@@ -37,10 +37,10 @@ getErrorP p s = PsE.errorMessages $ fromLeft placeHolderErr err
 -}
 tKeywordP = TestCase (assertEqual "keyword parse"
                        (Right (Keyword "class"))
-                       $ parseIt keywordP "   class   ")
+                       $ parseIt (keywordP "class") "   class   ")
 
 tKeywordPFail = TestCase (assertBool "keywordP fail"
-                           (isLeft $ parseIt keywordP "x"))
+                           (isLeft $ parseIt (keywordP "class") "x"))
 
 tSymbolP = TestCase (assertEqual "symbol parse"
                       (Right (Symbol "+"))

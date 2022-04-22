@@ -25,13 +25,10 @@ keywordsP xs = do
   kw <- chooseLit xs
   return (Keyword kw)
 
-keywordP :: Ps.Parsec String () Keyword
-keywordP = do
-  kw <- chooseLit ["class", "constructor", "function", "method", "field",
-                   "static", "var", "int", "char", "boolean", "void", "true",
-                   "false", "null", "this", "let", "do", "if", "else", "while",
-                   "return"]
-  return (Keyword kw)
+keywordP :: String -> Ps.Parsec String () Keyword
+keywordP kw = do
+  pkw <- wrapSps $ Ps.string kw
+  return (Keyword pkw)
 
 symbolP :: Ps.Parsec String () Symbol
 symbolP = do
