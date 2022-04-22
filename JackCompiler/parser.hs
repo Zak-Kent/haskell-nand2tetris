@@ -151,7 +151,7 @@ letVarNameP = do
 
 letP :: Ps.Parsec String () Statement
 letP = do
-  lt <- symP "let"
+  lt <- keywordP "let"
   lvn <- letVarNameP
   eq <- symP "="
   expr <- exprP
@@ -160,7 +160,7 @@ letP = do
 
 elseP :: Ps.Parsec String () Else
 elseP = do
-  els <- symP "else"
+  els <- keywordP "else"
   lc <- symP "{"
   stmts <- Ps.many statementP
   rc <- symP "}"
@@ -168,7 +168,7 @@ elseP = do
 
 ifP :: Ps.Parsec String () Statement
 ifP = do
-  i <- symP "if"
+  i <- keywordP "if"
   lp <- symP "("
   expr <- exprP
   rp <- symP ")"
@@ -180,7 +180,7 @@ ifP = do
 
 whileP :: Ps.Parsec String () Statement
 whileP = do
-  wh <- symP "while"
+  wh <- keywordP "while"
   lp <- symP "("
   expr <- exprP
   rp <- symP ")"
@@ -191,13 +191,13 @@ whileP = do
 
 doP :: Ps.Parsec String () Statement
 doP = do
-  d <- symP "do"
+  d <- keywordP "do"
   (SubroutineCall subCall) <- subroutineCallP
   return (Do d subCall)
 
 returnP :: Ps.Parsec String () Statement
 returnP = do
-  rt <- symP "return"
+  rt <- keywordP "return"
   expr <- Ps.optionMaybe exprP
   sc <- symP ";"
   return (Return rt expr sc)

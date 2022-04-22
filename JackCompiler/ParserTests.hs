@@ -197,7 +197,7 @@ tTermVarName = TestCase (assertEqual "varname blarg"
 -- statementP tests
 tLetStatement = TestCase (assertEqual "let statement with simple varname"
                            (Right
-                             (Let (Symbol "let")
+                             (Let (Keyword "let")
                                (LetVarName (Identifier "foo"))
                                (Symbol "=")
                                (Expr (IntegerConstant 5) [])
@@ -206,7 +206,7 @@ tLetStatement = TestCase (assertEqual "let statement with simple varname"
 
 tLetStatementWExpr = TestCase (assertEqual "let statement with expr varname"
                                 (Right
-                                  (Let (Symbol "let")
+                                  (Let (Keyword "let")
                                     (LetVarNameExpr (Identifier "foo")
                                       (Symbol "[")
                                       (Expr (IntegerConstant 1) [])
@@ -218,14 +218,14 @@ tLetStatementWExpr = TestCase (assertEqual "let statement with expr varname"
 
 tIfStatementNoElse = TestCase (assertEqual "if statement no else"
                                 (Right
-                                  (If (Symbol "if")
+                                  (If (Keyword "if")
                                     (Symbol "(")
                                     (Expr (IntegerConstant 1)
                                       [(Op "+",IntegerConstant 2),
                                        (Op "=",IntegerConstant 3)])
                                     (Symbol ")")
                                     (Symbol "{")
-                                    [Let (Symbol "let")
+                                    [Let (Keyword "let")
                                       (LetVarName (Identifier "foo"))
                                       (Symbol "=")
                                       (Expr (IntegerConstant 6) [])
@@ -236,23 +236,23 @@ tIfStatementNoElse = TestCase (assertEqual "if statement no else"
 
 tIfStatementElse = TestCase (assertEqual "if statement with else"
                               (Right
-                                (If (Symbol "if")
+                                (If (Keyword "if")
                                   (Symbol "(")
                                   (Expr (IntegerConstant 1)
                                     [(Op "+",IntegerConstant 2),
                                      (Op "=",IntegerConstant 3)])
                                   (Symbol ")")
                                   (Symbol "{")
-                                  [Let (Symbol "let")
+                                  [Let (Keyword "let")
                                     (LetVarName (Identifier "foo"))
                                     (Symbol "=")
                                     (Expr (IntegerConstant 6) [])
                                     (Symbol ";")]
                                   (Symbol "}")
                                   (Just
-                                    (Else (Symbol "else")
+                                    (Else (Keyword "else")
                                       (Symbol "{")
-                                      [Let (Symbol "let")
+                                      [Let (Keyword "let")
                                         (LetVarName (Identifier "foo"))
                                         (Symbol "=")
                                         (Expr (IntegerConstant 2) [])
@@ -263,13 +263,13 @@ tIfStatementElse = TestCase (assertEqual "if statement with else"
 
 tWhileStatement = TestCase (assertEqual "while block"
                              (Right
-                               (While (Symbol "while")
+                               (While (Keyword "while")
                                  (Symbol "(")
                                  (Expr (VarName (Identifier "foo"))
                                    [(Op "=",KeywordConstant "true")])
                                  (Symbol ")")
                                  (Symbol "{")
-                                 [Let (Symbol "let")
+                                 [Let (Keyword "let")
                                    (LetVarName (Identifier "bar"))
                                    (Symbol "=")
                                    (Expr (IntegerConstant 7) [])
@@ -280,7 +280,7 @@ tWhileStatement = TestCase (assertEqual "while block"
 tDoSubCallStatement = TestCase (assertEqual "do what.huh()"
                                  (Right
                                    (Do
-                                     (Symbol "do")
+                                     (Keyword "do")
                                      (SubCallClassOrVar (Identifier "what")
                                       (Symbol ".")
                                       (Identifier "huh")
@@ -292,7 +292,7 @@ tDoSubCallStatement = TestCase (assertEqual "do what.huh()"
 tReturnStatementWithExpr = TestCase (assertEqual "return 1 + 2;"
                                       (Right
                                         (Return
-                                          (Symbol "return")
+                                          (Keyword "return")
                                           (Just (Expr (IntegerConstant 1)
                                                   [(Op "+",IntegerConstant 2)]))
                                           (Symbol ";")))
@@ -301,7 +301,7 @@ tReturnStatementWithExpr = TestCase (assertEqual "return 1 + 2;"
 tReturnNoExpr = TestCase (assertEqual "return;"
                            (Right
                              (Return
-                               (Symbol "return")
+                               (Keyword "return")
                                Nothing
                                (Symbol ";")))
                          $ parseIt returnP "return;")
@@ -338,12 +338,12 @@ tSubroutineBody = TestCase (assertEqual "a simple subroutine body"
                                    (TKeyword (Keyword "boolean"))
                                    (Identifier "bar")
                                    [] (Symbol ";")]
-                                 [Let (Symbol "let")
+                                 [Let (Keyword "let")
                                    (LetVarName (Identifier "foo"))
                                    (Symbol "=")
                                    (Expr (IntegerConstant 5) [])
                                    (Symbol ";"),
-                                  Let (Symbol "let")
+                                  Let (Keyword "let")
                                    (LetVarName (Identifier "bar"))
                                    (Symbol "=")
                                    (Expr (KeywordConstant "true") [])
@@ -357,7 +357,7 @@ tSubroutineBodyNoVars = TestCase (assertEqual "subroutine body with no vars"
                                     (SubroutineBody (Symbol "{")
                                       []
                                       [(Do
-                                         (Symbol "do")
+                                         (Keyword "do")
                                          (SubCallClassOrVar (Identifier "what")
                                            (Symbol ".")
                                            (Identifier "huh")
@@ -404,13 +404,13 @@ tSubroutineDec = TestCase (assertEqual "subroutine declaration"
                                     (Identifier "baz")
                                     []
                                     (Symbol ";")]
-                                  [Let (Symbol "let")
+                                  [Let (Keyword "let")
                                     (LetVarName (Identifier "baz"))
                                     (Symbol "=")
                                     (Expr (VarName (Identifier "arg1"))
                                       [(Op "+",IntegerConstant 5)])
                                     (Symbol ";"),
-                                    Return (Symbol "return")
+                                    Return (Keyword "return")
                                     Nothing (Symbol ";")]
                                   (Symbol "}"))))
                           $ parseIt subroutineDecP
@@ -457,7 +457,7 @@ tClassWithBasicElems = TestCase (assertEqual "a basic class"
                                       (SubroutineBody
                                         (Symbol "{")
                                         []
-                                        [Return (Symbol "return")
+                                        [Return (Keyword "return")
                                           (Just
                                             (Expr
                                               (VarName (Identifier "foo")) []))
