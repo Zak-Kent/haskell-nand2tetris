@@ -4,7 +4,7 @@ module AST where
 data Keyword = Keyword String deriving (Show, Eq)
 data Symbol = Symbol String deriving (Show, Eq)
 data Identifier = Identifier String deriving (Show, Eq)
-data Op = Op String deriving (Show, Eq)
+data Op = Op Symbol deriving (Show, Eq)
 type VarName = Identifier
 
 -- expression: term (op term)*
@@ -20,7 +20,7 @@ data Term = IntegerConstant Int
   | StringConstant String
   | KeywordConstant String
   | VarName VarName
-  | UnaryOp String Term
+  | UnaryOp Symbol Term
   | VarNameExpr VarName Symbol Expr Symbol
   | ParenExpr Symbol Expr Symbol
   | SubroutineCall SubCall

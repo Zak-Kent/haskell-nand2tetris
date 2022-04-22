@@ -20,6 +20,11 @@ symP s = do
   r <- wrapSps $ Ps.string s
   return (Symbol r)
 
+symsP :: [String] -> Ps.Parsec String () Symbol
+symsP syms = do
+  sym <- chooseLit syms
+  return (Symbol sym)
+
 keywordsP :: [String] -> Ps.Parsec String () Keyword
 keywordsP xs = do
   kw <- chooseLit xs
@@ -32,7 +37,7 @@ keywordP kw = do
 
 opP :: Ps.Parsec String () Op
 opP = do
-  op <- chooseLit ["+", "-", "*", "/", "&", "|", "<", ">", "="]
+  op <- symsP ["+", "-", "*", "/", "&", "|", "<", ">", "="]
   return (Op op)
 
 identifierP :: Ps.Parsec String () Identifier
@@ -69,12 +74,12 @@ subCallNameP = do
 subCallClassOrVarP :: Ps.Parsec String () SubCall
 subCallClassOrVarP = do
   n <- identifierP
-  dot <- Ps.string "."
+  dot <- symP "."
   sn <- identifierP
   lp <- symP "("
   exprList <- wrapSps $ Ps.sepBy exprP $ Ps.string ","
   rp <- symP ")"
-  return (SubCallClassOrVar n (Symbol ".") sn lp exprList rp)
+  return (SubCallClassOrVar n dot sn lp exprList rp)
 
 -- Term parsers
 keywordConstantP :: Ps.Parsec String () Term
@@ -84,7 +89,7 @@ keywordConstantP = do
 
 unaryOpP :: Ps.Parsec String () Term
 unaryOpP = do
-  uop <- chooseLit ["-", "~"]
+  uop <- symsP ["-", "~"]
   t <- termP
   return (UnaryOp uop t)
 
