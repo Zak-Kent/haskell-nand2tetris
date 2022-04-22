@@ -386,6 +386,38 @@ tParamListManyParams = TestCase (assertEqual "param list with one param"
                                       Identifier "baz")]))
                                 $ parseIt paramListP "int foo, boolean bar, classFoo baz")
 
+tSubroutineDec = TestCase (assertEqual "subroutine declaration"
+                            (Right
+                              (SubroutineDec (Keyword "method")
+                                (TKeyword (Keyword "void"))
+                                (Identifier "foo")
+                                (Symbol "(")
+                                (ParameterList
+                                  [(TKeyword (Keyword "int"),
+                                    Identifier "arg1"),
+                                    (TKeyword (Keyword "boolean"),
+                                     Identifier "arg2")])
+                                (Symbol ")")
+                                (SubroutineBody (Symbol "{")
+                                  [VarDec (Symbol "var")
+                                    (TKeyword (Keyword "int"))
+                                    (Identifier "baz")
+                                    []
+                                    (Symbol ";")]
+                                  [Let (Symbol "let")
+                                    (LetVarName (Identifier "baz"))
+                                    (Symbol "=")
+                                    (Expr (VarName (Identifier "arg1"))
+                                      [(Op "+",IntegerConstant 5)])
+                                    (Symbol ";"),
+                                    Return (Symbol "return")
+                                    Nothing (Symbol ";")]
+                                  (Symbol "}"))))
+                          $ parseIt subroutineDecP
+                          "method void foo (int arg1 boolean arg2) \
+                          \ { var int baz; let baz = arg1 + 5; return;}")
+
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -441,7 +473,8 @@ structureTests =
             TestLabel "simple subroutine body" tSubroutineBody,
             TestLabel "subroutine body with no vars" tSubroutineBodyNoVars,
             TestLabel "param list with on param" tParamListOneParam,
-            TestLabel "param list with many params" tParamListManyParams]
+            TestLabel "param list with many params" tParamListManyParams,
+            TestLabel "subroutine declaration" tSubroutineDec]
 
 runAllTests :: Test
 runAllTests =

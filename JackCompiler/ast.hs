@@ -60,3 +60,9 @@ data SubroutineBody = SubroutineBody Symbol [VarDec] Statements Symbol
 -- ((type varName) (',' type varName)*)?
 data ParameterList = ParameterList [(Type, VarName)]
   deriving (Show, Eq)
+
+-- ('constructor' | 'function' |'method') ('void' | type) subroutineName
+--   '(' parameterLIst ')' subroutineBody
+data SubroutineDec = SubroutineDec Keyword Type Identifier
+                       Symbol ParameterList Symbol SubroutineBody
+                       deriving (Show, Eq)

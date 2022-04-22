@@ -211,14 +211,14 @@ statementP = do
   return s
 
 -- Program structure parsers
-typeP :: Ps.Parsec String () Type
-typeP = do
+typeOrKwP :: [String] -> Ps.Parsec String () Type
+typeOrKwP kws = do
   tName <- Ps.choice $ map Ps.try [tParseKWs, tIdentifierP]
   return tName
   -- the type juggling below is done to get the same return type from
   -- keywordsP and identifierP so they can be used with Ps.choice
   where tParseKWs = do
-          kw <- keywordsP ["int", "char", "boolean"]
+          kw <- keywordsP kws
           return (TKeyword kw)
         tIdentifierP = do
           i <- identifierP
@@ -227,7 +227,7 @@ typeP = do
 varDecP :: Ps.Parsec String () VarDec
 varDecP = do
   var <- symP "var"
-  typ <- typeP
+  typ <- (typeOrKwP ["int", "char", "boolean"])
   varN <- identifierP
   Ps.spaces
   Ps.optional $ Ps.string ","
@@ -253,10 +253,21 @@ paramListP = do
   params <- wrapSps $ Ps.sepBy paramP $ Ps.string ","
   return (ParameterList $ param:params)
   where paramP = do
-          typ <- typeP
+          typ <- (typeOrKwP ["int", "char", "boolean"])
           Ps.spaces
           varN <- identifierP
           return (typ, varN)
+
+subroutineDecP :: Ps.Parsec String () SubroutineDec
+subroutineDecP = do
+  kw <- keywordsP ["constructor", "function", "method"]
+  retType <- typeOrKwP ["void"]
+  subN <- identifierP
+  lb <- symP "("
+  params <- paramListP
+  rb <- symP ")"
+  subBody <- subroutineBodyP
+  return (SubroutineDec kw retType subN lb params rb subBody)
 
 main :: IO ()
 main = do
