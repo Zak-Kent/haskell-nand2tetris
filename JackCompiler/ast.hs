@@ -66,3 +66,7 @@ data ParameterList = ParameterList [(Type, VarName)]
 data SubroutineDec = SubroutineDec Keyword Type Identifier
                        Symbol ParameterList Symbol SubroutineBody
                        deriving (Show, Eq)
+
+-- ('static' 'field') type varName (',' varName)* ';'
+data ClassVarDec = ClassVarDec Keyword Type VarName [VarName] Symbol
+  deriving (Show, Eq)

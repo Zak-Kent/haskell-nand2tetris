@@ -418,6 +418,15 @@ tSubroutineDec = TestCase (assertEqual "subroutine declaration"
                           \ { var int baz; let baz = arg1 + 5; return;}")
 
 
+tClassVarDecManyVars = TestCase (assertEqual "var boolean foo, bar, baz;"
+                                  (Right
+                                    (ClassVarDec (Keyword "static")
+                                      (TKeyword (Keyword "int"))
+                                      (Identifier "foo")
+                                      [(Identifier "bar")]
+                                     (Symbol ";")))
+                           $ parseIt classVarDecP "static int foo, bar;")
+
 -- TestLists
 terminalParserTests =
   TestList [TestLabel "keywordP" tKeywordP,
@@ -464,7 +473,8 @@ statmentTests =
             TestLabel "while (foo = true) {let bar = 7;}" tWhileStatement,
             TestLabel "do what.huh()" tDoSubCallStatement,
             TestLabel "return 1 + 2;" tReturnStatementWithExpr,
-            TestLabel "return;" tReturnNoExpr]
+            TestLabel "return;" tReturnNoExpr,
+            TestLabel "class var dec two vars" tClassVarDecManyVars]
 
 -- Program structure tests
 structureTests =

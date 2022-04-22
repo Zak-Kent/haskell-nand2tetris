@@ -269,6 +269,20 @@ subroutineDecP = do
   subBody <- subroutineBodyP
   return (SubroutineDec kw retType subN lb params rb subBody)
 
+classVarDecP :: Ps.Parsec String () ClassVarDec
+classVarDecP = do
+  kw <- keywordsP ["static", "field"]
+  typ <- (typeOrKwP ["int", "char", "boolean"])
+  varN <- identifierP
+  Ps.spaces
+  Ps.optional $ Ps.string ","
+  -- varNList is dropping all the ',' symbols, you'll need to account for
+  -- this in the xml generation
+  varNList <- wrapSps $ Ps.sepBy identifierP $ Ps.string ","
+  sc <- symP ";"
+  return (ClassVarDec kw typ varN varNList sc)
+
+
 main :: IO ()
 main = do
   let blarg = Ps.parse identifierP "error file" "hah ahhaa4"
