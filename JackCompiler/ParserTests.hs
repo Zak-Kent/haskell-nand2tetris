@@ -44,7 +44,7 @@ tKeywordPFail = TestCase (assertBool "keywordP fail"
 
 tSymbolP = TestCase (assertEqual "symbol parse"
                       (Right (Symbol "+"))
-                      $ parseIt symbolP "+")
+                      $ parseIt (symP "+") "  +  ")
 
 -- identifierP tests
 tIdentifierP = TestCase (assertEqual "identifier parse"

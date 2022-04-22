@@ -30,12 +30,6 @@ keywordP kw = do
   pkw <- wrapSps $ Ps.string kw
   return (Keyword pkw)
 
-symbolP :: Ps.Parsec String () Symbol
-symbolP = do
-  sy <- chooseLit ["{", "}", "(", ")", "[", "]", ".", ",", ";",
-                   "+", "-", "*", "/", "&", "|", "<", ">", "=", "~"]
-  return (Symbol sy)
-
 opP :: Ps.Parsec String () Op
 opP = do
   op <- chooseLit ["+", "-", "*", "/", "&", "|", "<", ">", "="]
