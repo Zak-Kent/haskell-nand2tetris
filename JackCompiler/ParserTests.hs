@@ -1,3 +1,5 @@
+module ParserTests where
+
 import Data.Either
 import Test.HUnit
 import qualified Text.Parsec as Ps
