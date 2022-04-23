@@ -41,6 +41,56 @@ tTermStrConstX = TestCase (assertEqual "StringConstant -> XML"
                            $ fromRight (StringConstant "fail")
                            $ parseIt termP "\"foo\"")
 
+tExprX = TestCase (assertEqual "Expr -> XML"
+                   (joinTags
+                    "<expression> \
+                      \ <term> \
+                        \ <integerConstant>5</integerConstant> \
+                      \ </term> \
+                      \ <symbol>+</symbol> \
+                      \ <term> \
+                        \ <integerConstant>10</integerConstant> \
+                      \ </term> \
+                    \ </expression>")
+                   $ xExpr
+                   $ fromRight (Expr (StringConstant "fail") [])
+                   $ parseIt exprP "5 + 10")
+
+tSubCallNameX = TestCase (assertEqual "SubCallName -> XML"
+                          (joinTags
+                           "<term> \
+                             \ <identifier>foo</identifier> \
+                             \ <symbol>(</symbol> \
+                             \ <symbol>)</symbol> \
+                           \ </term>")
+                          $ xTerm
+                          $ fromRight (SubroutineCall
+                                        (SubCallName (Identifier "fail")
+                                          (Symbol "x")
+                                          []
+                                          (Symbol "x")))
+                          $ parseIt termP "foo()")
+
+tSubClassOrVarX = TestCase (assertEqual "SubCallClassOrVar -> XML"
+                           (joinTags
+                            "<term>< \
+                              \ identifier>what</identifier> \
+                              \ <symbol>.</symbol> \
+                              \ <identifier>huh</identifier> \
+                              \ <symbol>(</symbol> \
+                              \ <symbol>)</symbol> \
+                            \ </term>")
+                           $ xTerm
+                           $ fromRight (SubroutineCall
+                                         (SubCallClassOrVar (Identifier "fail")
+                                           (Symbol "x")
+                                           (Identifier "fail")
+                                           (Symbol "x")
+                                           []
+                                           (Symbol "x")))
+                           $ parseIt termP "what.huh()")
+
+
 terminalElementTests =
   TestList [TestLabel "Keyword -> XML" tKeywordX,
             TestLabel "Symbol -> XML" tSymbolX,
@@ -48,7 +98,13 @@ terminalElementTests =
             TestLabel "StringConstant -> XML" tTermStrConstX,
             TestLabel "Identifier -> XML" tIdentifierX]
 
+nonTerminalTests =
+  TestList [TestLabel "Expr -> XML" tExprX,
+            TestLabel "SubCallName -> XML" tSubCallNameX,
+            TestLabel "SubCallClassOrVar -> XML" tSubClassOrVarX]
+
 runXMLTests :: Test
 runXMLTests =
   TestList
-  $ concat $ [l | (TestList l) <- [terminalElementTests]]
+  $ concat $ [l | (TestList l) <- [terminalElementTests,
+                                  nonTerminalTests]]
