@@ -11,37 +11,46 @@ import ParserTests
 joinTags :: String -> String
 joinTags = concat . words
 
+-- test helper to avoid needing to supply a default value of a matching type
+-- to 'fromRight' which becomes awkward as input size grows.
+tryParse :: Ps.Parsec String () a -> String -> (Maybe a)
+tryParse p s = case parseIt p s of
+                 (Right result) -> (Just result)
+                 (Left _) -> Nothing
+
 tKeywordX = TestCase (assertEqual "Keyword -> XML"
-                      "<keyword>class</keyword>"
-                      $ xKeyword
-                      $ fromRight (Keyword "fail")
-                      $ parseIt (keywordP "class") "class")
+                      (Just "<keyword>class</keyword>")
+                      $ fmap xKeyword
+                      $ tryParse (keywordP "class") "class")
 
 tSymbolX = TestCase (assertEqual "Symbol -> XML"
-                     "<symbol>(</symbol>"
-                     $ xSymbol
-                     $ fromRight (Symbol "fail")
-                     $ parseIt (symP "(") "(")
+                     (Just "<symbol>(</symbol>")
+                     $ fmap xSymbol
+                     $ tryParse (symP "(") "(")
 
 tIdentifierX = TestCase (assertEqual "Identifier -> XML"
-                         "<identifier>foo</identifier>"
-                         $ xIdentifier
-                         $ fromRight (Identifier "fail")
-                         $ parseIt identifierP "foo")
+                         (Just "<identifier>foo</identifier>")
+                         $ fmap xIdentifier
+                         $ tryParse identifierP "foo")
 
 tTermIntConstX = TestCase (assertEqual "IntegerConstant -> XML"
-                           "<term><integerConstant>5</integerConstant></term>"
-                           $ xTerm
-                           $ fromRight (IntegerConstant 0)
-                           $ parseIt termP "5")
+                           (Just (joinTags
+                                  "<term> \
+                                  \ <integerConstant>5</integerConstant> \
+                                 \ </term>"))
+                           $ fmap xTerm
+                           $ tryParse termP "5")
 
 tTermStrConstX = TestCase (assertEqual "StringConstant -> XML"
-                           "<term><stringConstant>foo</stringConstant></term>"
-                           $ xTerm
-                           $ fromRight (StringConstant "fail")
-                           $ parseIt termP "\"foo\"")
+                           (Just (joinTags
+                                  "<term> \
+                                    \ <stringConstant>foo</stringConstant> \
+                                  \ </term>"))
+                           $ fmap xTerm
+                           $ tryParse termP "\"foo\"")
 
 tExprX = TestCase (assertEqual "Expr -> XML"
+                  (Just
                    (joinTags
                     "<expression> \
                       \ <term> \
@@ -51,45 +60,49 @@ tExprX = TestCase (assertEqual "Expr -> XML"
                       \ <term> \
                         \ <integerConstant>10</integerConstant> \
                       \ </term> \
-                    \ </expression>")
-                   $ xExpr
-                   $ fromRight (Expr (StringConstant "fail") [])
-                   $ parseIt exprP "5 + 10")
+                    \ </expression>"))
+                   $ fmap xExpr
+                   $ tryParse exprP "5 + 10")
 
 tSubCallNameX = TestCase (assertEqual "SubCallName -> XML"
+                         (Just
                           (joinTags
                            "<term> \
                              \ <identifier>foo</identifier> \
                              \ <symbol>(</symbol> \
                              \ <symbol>)</symbol> \
-                           \ </term>")
-                          $ xTerm
-                          $ fromRight (SubroutineCall
-                                        (SubCallName (Identifier "fail")
-                                          (Symbol "x")
-                                          []
-                                          (Symbol "x")))
-                          $ parseIt termP "foo()")
+                           \ </term>"))
+                          $ fmap xTerm
+                          $ tryParse termP "foo()")
 
 tSubClassOrVarX = TestCase (assertEqual "SubCallClassOrVar -> XML"
-                           (joinTags
-                            "<term>< \
-                              \ identifier>what</identifier> \
-                              \ <symbol>.</symbol> \
-                              \ <identifier>huh</identifier> \
-                              \ <symbol>(</symbol> \
-                              \ <symbol>)</symbol> \
-                            \ </term>")
-                           $ xTerm
-                           $ fromRight (SubroutineCall
-                                         (SubCallClassOrVar (Identifier "fail")
-                                           (Symbol "x")
-                                           (Identifier "fail")
-                                           (Symbol "x")
-                                           []
-                                           (Symbol "x")))
-                           $ parseIt termP "what.huh()")
+                           (Just
+                            (joinTags
+                             "<term>< \
+                                \ identifier>what</identifier> \
+                                \ <symbol>.</symbol> \
+                                \ <identifier>huh</identifier> \
+                                \ <symbol>(</symbol> \
+                                \ <symbol>)</symbol> \
+                              \ </term>"))
+                           $ fmap xTerm
+                           $ tryParse termP "what.huh()")
 
+tVarNameArrayAccessX = TestCase (assertEqual "VarNameExpr -> XML"
+                                (Just
+                                 (joinTags
+                                  "<term> \
+                                    \ <identifier>foo</identifier> \
+                                    \ <symbol>[</symbol> \
+                                    \ <expression> \
+                                      \ <term> \
+                                      \ <integerConstant>1</integerConstant> \
+                                      \ </term> \
+                                    \ </expression> \
+                                    \ <symbol>]</symbol> \
+                                  \ </term>"))
+                                $ fmap xTerm
+                                $ tryParse termP "foo[1]")
 
 terminalElementTests =
   TestList [TestLabel "Keyword -> XML" tKeywordX,
@@ -101,7 +114,8 @@ terminalElementTests =
 nonTerminalTests =
   TestList [TestLabel "Expr -> XML" tExprX,
             TestLabel "SubCallName -> XML" tSubCallNameX,
-            TestLabel "SubCallClassOrVar -> XML" tSubClassOrVarX]
+            TestLabel "SubCallClassOrVar -> XML" tSubClassOrVarX,
+            TestLabel "VarNameExpr -> XML" tVarNameArrayAccessX]
 
 runXMLTests :: Test
 runXMLTests =
