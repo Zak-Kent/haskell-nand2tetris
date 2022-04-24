@@ -153,6 +153,47 @@ tTermParenExprX = TestCase (assertEqual "ParenExpr -> XML"
                            $ fmap xTerm
                            $ tryParse termP "(1 + 2)")
 
+tStatementLetX = TestCase (assertEqual "LetVarName -> XML"
+                          (Just
+                            (joinTags
+                              "<letStatement> \
+                                \ <keyword>let</keyword> \
+                                \ <identifier>foo</identifier> \
+                                \ <symbol>=</symbol> \
+                                \ <expression> \
+                                  \ <term> \
+                                    \ <integerConstant>5</integerConstant> \
+                                  \ </term> \
+                                \ </expression> \
+                                \ <symbol>;</symbol> \
+                              \ </letStatement>"))
+                          $ fmap xStatement
+                          $ tryParse statementP "let foo = 5;")
+
+tStatementLetVNExprX = TestCase (assertEqual "LetVarNameExpr -> XML"
+                                (Just
+                                  (joinTags
+                                   "<letStatement> \
+                                    \ <keyword>let</keyword> \
+                                    \ <identifier>foo</identifier> \
+                                    \ <symbol>[</symbol> \
+                                    \ <expression> \
+                                      \ <term> \
+                                        \ <integerConstant>5</integerConstant> \
+                                      \ </term> \
+                                    \ </expression> \
+                                    \ <symbol>]</symbol> \
+                                    \ <symbol>=</symbol> \
+                                    \ <expression> \
+                                      \ <term> \
+                                        \ <integerConstant>12</integerConstant> \
+                                      \ </term> \
+                                    \ </expression> \
+                                    \ <symbol>;</symbol> \
+                                  \ </letStatement>"))
+                                $ fmap xStatement
+                                $tryParse statementP "let foo[5] = 12;")
+
 terminalElementTests =
   TestList [TestLabel "Keyword -> XML" tKeywordX,
             TestLabel "Symbol -> XML" tSymbolX,
@@ -168,7 +209,9 @@ nonTerminalTests =
             TestLabel "SubCallClassOrVar -> XML" tSubClassOrVarX,
             TestLabel "VarNameExpr -> XML" tVarNameArrayAccessX,
             TestLabel "UnaryOp -> XML" tTermUnaryOpX,
-            TestLabel "ParenExpr -> XML" tTermParenExprX]
+            TestLabel "ParenExpr -> XML" tTermParenExprX,
+            TestLabel "LetVarName -> XML" tStatementLetX,
+            TestLabel "LetVarNameExpr -> XML" tStatementLetVNExprX]
 
 runXMLTests :: Test
 runXMLTests =

@@ -46,6 +46,7 @@ xTerm :: Term -> String
 xTerm (IntegerConstant i) = xWrapT $ xTag "integerConstant" $ show i
 xTerm (StringConstant s) = xWrapT $ xTag "stringConstant" s
 xTerm (KeywordConstant k) = xWrapT $ xTag "keywordConstant" k
+-- TODO: might not need to wrap xIdentifier in term tag
 xTerm (VarName i) = xWrapT $ xIdentifier i -- VarName becomes an identifier tag
 xTerm (UnaryOp s t) = xWrapT $ xSymbol s ++ xTerm t
 xTerm (VarNameExpr vName lb expr rb) =
@@ -57,3 +58,20 @@ xTerm (VarNameExpr vName lb expr rb) =
 xTerm (ParenExpr lp expr rp) = xWrapT $ xSymbol lp ++ xExpr expr ++ xSymbol rp
 xTerm (SubroutineCall subCall) = xWrapT $ xSubCall subCall
 
+xStatement :: Statement -> String
+xStatement (Let kw varName eq expr sc) =
+  let varN = case varName of
+        LetVarName vn ->
+          xIdentifier vn
+        LetVarNameExpr vn lb expr' rb ->
+          xIdentifier vn
+          ++ xSymbol lb
+          ++ xExpr expr'
+          ++ xSymbol rb
+  in xTag "letStatement" $
+  xKeyword kw
+  ++ varN
+  ++ xSymbol eq
+  ++ xExpr expr
+  ++ xSymbol sc
+xStatement _ = undefined
