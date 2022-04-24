@@ -49,6 +49,20 @@ tTermStrConstX = TestCase (assertEqual "StringConstant -> XML"
                            $ fmap xTerm
                            $ tryParse termP "\"foo\"")
 
+tTermKeywordConstX = TestCase (assertEqual "KeywordConstant -> XML"
+                              (Just (joinTags
+                                    "<term> \
+                                      \ <keywordConstant>null</keywordConstant> \
+                                    \</term>"))
+                                $ fmap xTerm
+                                $ tryParse termP "null")
+
+tTermVarNameX = TestCase (assertEqual "VarName -> XML"
+                         (Just
+                          "<term><identifier>foo</identifier></term>")
+                         $ fmap xTerm
+                         $ tryParse termP "foo")
+
 tExprX = TestCase (assertEqual "Expr -> XML"
                   (Just
                    (joinTags
@@ -104,18 +118,57 @@ tVarNameArrayAccessX = TestCase (assertEqual "VarNameExpr -> XML"
                                 $ fmap xTerm
                                 $ tryParse termP "foo[1]")
 
+tTermUnaryOpX = TestCase (assertEqual "UnaryOp -> XML"
+                         -- TODO: check that the nested term tags is what's expected
+                         -- when xTerm gets recursively called.
+                         -- this could cause the coursera tests to fail
+                         (Just
+                           (joinTags
+                            "<term> \
+                              \ <symbol>~</symbol> \
+                            \ <term> \
+                              \ <identifier>foo</identifier> \
+                            \ </term> \
+                          \ </term>"))
+                         $ fmap xTerm
+                         $ tryParse termP "~foo")
+
+tTermParenExprX = TestCase (assertEqual "ParenExpr -> XML"
+                           (Just
+                             (joinTags
+                              "<term> \
+                              \ <symbol>(</symbol> \
+                              \ <expression> \
+                                \ <term> \
+                                  \ <integerConstant>1</integerConstant> \
+                                \ </term> \
+                                \ <symbol>+</symbol> \
+                                \ <term> \
+                                  \ <integerConstant>2</integerConstant> \
+                                \ </term> \
+                              \ </expression> \
+                              \ <symbol>)</symbol> \
+                            \ </term>"
+                             ))
+                           $ fmap xTerm
+                           $ tryParse termP "(1 + 2)")
+
 terminalElementTests =
   TestList [TestLabel "Keyword -> XML" tKeywordX,
             TestLabel "Symbol -> XML" tSymbolX,
             TestLabel "IntegerConstant -> XML" tTermIntConstX,
             TestLabel "StringConstant -> XML" tTermStrConstX,
-            TestLabel "Identifier -> XML" tIdentifierX]
+            TestLabel "Identifier -> XML" tIdentifierX,
+            TestLabel "KeywordConstant -> XML" tTermKeywordConstX,
+            TestLabel "VarName -> XML" tTermVarNameX]
 
 nonTerminalTests =
   TestList [TestLabel "Expr -> XML" tExprX,
             TestLabel "SubCallName -> XML" tSubCallNameX,
             TestLabel "SubCallClassOrVar -> XML" tSubClassOrVarX,
-            TestLabel "VarNameExpr -> XML" tVarNameArrayAccessX]
+            TestLabel "VarNameExpr -> XML" tVarNameArrayAccessX,
+            TestLabel "UnaryOp -> XML" tTermUnaryOpX,
+            TestLabel "ParenExpr -> XML" tTermParenExprX]
 
 runXMLTests :: Test
 runXMLTests =
