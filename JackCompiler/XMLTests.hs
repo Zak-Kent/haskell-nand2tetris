@@ -192,7 +192,79 @@ tStatementLetVNExprX = TestCase (assertEqual "LetVarNameExpr -> XML"
                                     \ <symbol>;</symbol> \
                                   \ </letStatement>"))
                                 $ fmap xStatement
-                                $tryParse statementP "let foo[5] = 12;")
+                                $ tryParse statementP "let foo[5] = 12;")
+
+tAllStatementsX = TestCase (assertEqual "AllStatements -> XML"
+                                (Just
+                                  (joinTags
+                                   "<ifStatement> \
+                                      \ <keyword>if</keyword> \
+                                      \ <symbol>(</symbol> \
+                                      \ <expression> \
+                                        \ <term> \
+                                          \ <keywordConstant>true</keywordConstant> \
+                                        \ </term> \
+                                      \ </expression> \
+                                      \ <symbol>)</symbol> \
+                                      \ <symbol>{</symbol> \
+                                      \ <letStatement> \
+                                        \ <keyword>let</keyword> \
+                                        \ <identifier>foo</identifier> \
+                                        \ <symbol>=</symbol> \
+                                        \ <expression> \
+                                          \ <term> \
+                                            \ <integerConstant>5</integerConstant> \
+                                          \ </term> \
+                                        \ </expression> \
+                                        \ <symbol>;</symbol> \
+                                      \ </letStatement> \
+                                      \ <doStatement> \
+                                        \ <keyword>do</keyword> \
+                                        \ <identifier>bar</identifier> \
+                                        \ <symbol>(</symbol> \
+                                        \ <symbol>)</symbol> \
+                                      \ </doStatement> \
+                                      \ <returnStatement> \
+                                        \ <keyword>return</keyword> \
+                                        \ <expression> \
+                                          \ <term> \
+                                            \ <integerConstant>42</integerConstant> \
+                                          \ </term> \
+                                        \ </expression> \
+                                        \ <symbol>;</symbol> \
+                                      \ </returnStatement> \
+                                      \ <symbol>}</symbol> \
+                                      \ <keyword>else</keyword> \
+                                      \ <symbol>{</symbol> \
+                                      \ <whileStatement> \
+                                        \ <keyword>while</keyword> \
+                                        \ <symbol>(</symbol> \
+                                        \ <expression> \
+                                          \ <term> \
+                                            \ <keywordConstant>false</keywordConstant> \
+                                          \ </term> \
+                                        \ </expression> \
+                                        \ <symbol>)</symbol> \
+                                        \ <symbol>{</symbol> \
+                                        \ <doStatement> \
+                                          \ <keyword>do</keyword> \
+                                          \ <identifier>bar</identifier> \
+                                          \ <symbol>.</symbol> \
+                                          \ <identifier>baz</identifier> \
+                                          \ <symbol>(</symbol> \
+                                          \ <symbol>)</symbol> \
+                                        \ </doStatement> \
+                                        \ <symbol>}</symbol> \
+                                      \ </whileStatement> \
+                                      \ <symbol>}</symbol> \
+                                    \ </ifStatement>"))
+                                $ fmap xStatement
+                                $ tryParse statementP "if (true) \
+                                                      \ {let foo = 5; \
+                                                      \  do bar()  \
+                                                      \  return 42; } \
+                                                      \ else {while (false) \
+                                                      \      {do bar.baz()}};")
 
 terminalElementTests =
   TestList [TestLabel "Keyword -> XML" tKeywordX,
@@ -211,7 +283,8 @@ nonTerminalTests =
             TestLabel "UnaryOp -> XML" tTermUnaryOpX,
             TestLabel "ParenExpr -> XML" tTermParenExprX,
             TestLabel "LetVarName -> XML" tStatementLetX,
-            TestLabel "LetVarNameExpr -> XML" tStatementLetVNExprX]
+            TestLabel "LetVarNameExpr -> XML" tStatementLetVNExprX,
+            TestLabel "AllStatements -> XML" tAllStatementsX]
 
 runXMLTests :: Test
 runXMLTests =

@@ -58,6 +58,9 @@ xTerm (VarNameExpr vName lb expr rb) =
 xTerm (ParenExpr lp expr rp) = xWrapT $ xSymbol lp ++ xExpr expr ++ xSymbol rp
 xTerm (SubroutineCall subCall) = xWrapT $ xSubCall subCall
 
+xStatements :: [Statement] -> String
+xStatements stmts = concat $ map xStatement stmts
+
 xStatement :: Statement -> String
 xStatement (Let kw varName eq expr sc) =
   let varN = case varName of
@@ -74,4 +77,58 @@ xStatement (Let kw varName eq expr sc) =
   ++ xSymbol eq
   ++ xExpr expr
   ++ xSymbol sc
-xStatement _ = undefined
+
+xStatement (If kw lp expr rp lc stmts rc maybeStmts) =
+  let mStmts = case maybeStmts of
+        Just (Else kw' lc' stmts' rc') ->
+          xKeyword kw'
+          ++ xSymbol lc'
+          ++ xStatements stmts'
+          ++ xSymbol rc'
+        Nothing -> ""
+  in xTag "ifStatement" $
+  xKeyword kw
+  ++ xSymbol lp
+  ++ xExpr expr
+  ++ xSymbol rp
+  ++ xSymbol lc
+  ++ xStatements stmts
+  ++ xSymbol rc
+  ++ mStmts
+
+xStatement (While kw lp expr rp lc stmts rc) =
+  xTag "whileStatement" $
+  xKeyword kw
+  ++ xSymbol lp
+  ++ xExpr expr
+  ++ xSymbol rp
+  ++ xSymbol lc
+  ++ xStatements stmts
+  ++ xSymbol rc
+
+xStatement (Do kw subCall) =
+  let sCall = case subCall of
+        (SubCallName scn lp exprs rp) ->
+          xIdentifier scn
+          ++ xSymbol lp
+          ++ xExprs exprs
+          ++ xSymbol rp
+        (SubCallClassOrVar cvn dot sn lp exprs rp) ->
+          xIdentifier cvn
+          ++ xSymbol dot
+          ++ xIdentifier sn
+          ++ xSymbol lp
+          ++ xExprs exprs
+          ++ xSymbol rp
+  in xTag "doStatement" $
+  xKeyword kw
+  ++ sCall
+
+xStatement (Return kw maybeExpr sc) =
+  let mExpr = case maybeExpr of
+        (Just expr) -> xExpr expr
+        Nothing -> ""
+  in xTag "returnStatement" $
+  xKeyword kw
+  ++ mExpr
+  ++ xSymbol sc
