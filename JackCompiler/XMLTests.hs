@@ -222,6 +222,17 @@ tAllStatementsX = TestCase (assertEqual "AllStatements -> XML"
                                         \ <keyword>do</keyword> \
                                         \ <identifier>bar</identifier> \
                                         \ <symbol>(</symbol> \
+                                        \ <expression> \
+                                          \ <term> \
+                                            \ <integerConstant>1</integerConstant> \
+                                          \ </term> \
+                                        \ </expression> \
+                                        \ <symbol>,</symbol> \
+                                        \ <expression> \
+                                          \ <term> \
+                                            \ <integerConstant>2</integerConstant> \
+                                          \ </term> \
+                                        \ </expression> \
                                         \ <symbol>)</symbol> \
                                       \ </doStatement> \
                                       \ <returnStatement> \
@@ -261,7 +272,7 @@ tAllStatementsX = TestCase (assertEqual "AllStatements -> XML"
                                 $ fmap xStatement
                                 $ tryParse statementP "if (true) \
                                                       \ {let foo = 5; \
-                                                      \  do bar()  \
+                                                      \  do bar(1, 2)  \
                                                       \  return 42; } \
                                                       \ else {while (false) \
                                                       \      {do bar.baz()}};")

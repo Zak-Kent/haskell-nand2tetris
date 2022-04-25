@@ -1,6 +1,8 @@
 module XMLGen where
 
 import Text.Printf
+import Data.List
+
 import AST
 
 xTag :: String -> String -> String
@@ -23,7 +25,7 @@ xExpr (Expr t opTerms) = xTag "expression"
   (concat $ [xTerm t] ++ (map xOpTerms opTerms))
 
 xExprs :: [Expr] -> String
-xExprs exprs = concat $ map xExpr exprs
+xExprs exprs = intercalate (xSymbol (Symbol ",")) $ map xExpr exprs
 
 xSubCall :: SubCall -> String
 xSubCall (SubCallName sName lp exprs rp) =
