@@ -277,6 +277,18 @@ tAllStatementsX = TestCase (assertEqual "AllStatements -> XML"
                                                       \ else {while (false) \
                                                       \      {do bar.baz()}};")
 
+tVarDecX = TestCase (assertEqual "VarDec -> XML"
+                    (Just
+                      (joinTags
+                        "<keyword>var</keyword> \
+                        \ <keyword>int</keyword> \
+                        \ <identifier>foo</identifier> \
+                        \ <symbol>,</symbol> \
+                        \ <identifier>bar</identifier> \
+                        \ <symbol>;</symbol>"))
+                    $ fmap xVarDec
+                    $ tryParse varDecP "var int foo, bar;")
+
 terminalElementTests =
   TestList [TestLabel "Keyword -> XML" tKeywordX,
             TestLabel "Symbol -> XML" tSymbolX,
@@ -295,7 +307,8 @@ nonTerminalTests =
             TestLabel "ParenExpr -> XML" tTermParenExprX,
             TestLabel "LetVarName -> XML" tStatementLetX,
             TestLabel "LetVarNameExpr -> XML" tStatementLetVNExprX,
-            TestLabel "AllStatements -> XML" tAllStatementsX]
+            TestLabel "AllStatements -> XML" tAllStatementsX,
+            TestLabel "VarDec -> XML" tVarDecX]
 
 runXMLTests :: Test
 runXMLTests =

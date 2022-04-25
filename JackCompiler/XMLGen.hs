@@ -134,3 +134,16 @@ xStatement (Return kw maybeExpr sc) =
   xKeyword kw
   ++ mExpr
   ++ xSymbol sc
+
+xType :: Type -> String
+xType (TKeyword kw) = xKeyword kw
+xType (TIdentifier i) = xIdentifier i
+
+xVarDec :: VarDec -> String
+xVarDec (VarDec varKw typ vn vns sc) =
+  let varNames = intercalate (xSymbol (Symbol ",")) $
+                 map xIdentifier $ [vn] ++ vns
+  in xKeyword varKw
+  ++ xType typ
+  ++ varNames
+  ++ xSymbol sc
