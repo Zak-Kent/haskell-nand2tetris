@@ -154,3 +154,8 @@ xSubroutineBody (SubroutineBody lc varDecs stmts rc) =
   ++ (concat $ map xVarDec varDecs)
   ++ xStatements stmts
   ++ xSymbol rc
+
+xParameterList :: ParameterList -> String
+xParameterList (ParameterList params) =
+  intercalate (xSymbol (Symbol ",")) $ map xParams params
+  where xParams (t, vn) = xType t ++ xIdentifier vn

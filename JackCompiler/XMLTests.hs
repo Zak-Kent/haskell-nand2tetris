@@ -312,6 +312,17 @@ tSubroutineBodyX = TestCase (assertEqual "SubroutingBody -> XML"
                             $ tryParse subroutineBodyP "{var int foo; \
                                                        \ let foo = 5;}")
 
+tParamListX = TestCase (assertEqual "ParamterList -> XML"
+                       (Just
+                        (joinTags
+                          "<keyword>int</keyword> \
+                          \ <identifier>foo</identifier> \
+                          \ <symbol>,</symbol> \
+                          \ <keyword>boolean</keyword> \
+                          \ <identifier>bar</identifier>"))
+                         $ fmap xParameterList
+                         $ tryParse paramListP "int foo, boolean bar")
+
 terminalElementTests =
   TestList [TestLabel "Keyword -> XML" tKeywordX,
             TestLabel "Symbol -> XML" tSymbolX,
@@ -332,7 +343,8 @@ nonTerminalTests =
             TestLabel "LetVarNameExpr -> XML" tStatementLetVNExprX,
             TestLabel "AllStatements -> XML" tAllStatementsX,
             TestLabel "VarDec -> XML" tVarDecX,
-            TestLabel "SubroutineBody -> XML" tSubroutineBodyX]
+            TestLabel "SubroutineBody -> XML" tSubroutineBodyX,
+            TestLabel "ParameterList -> XML" tParamListX]
 
 runXMLTests :: Test
 runXMLTests =
