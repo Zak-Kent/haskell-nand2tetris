@@ -183,3 +183,13 @@ xClassVarDec (ClassVarDec kw typ vn vns sc) =
   ++ xType typ
   ++ varNames
   ++ xSymbol sc
+
+xClass :: Class -> String
+xClass (Class kw cn lc clsVars subDecs rc) =
+  xTag "class" $
+  xKeyword kw
+  ++ xIdentifier cn
+  ++ xSymbol lc
+  ++ (concat $ map xClassVarDec clsVars)
+  ++ (concat $ map xSubroutineDec subDecs)
+  ++ xSymbol rc

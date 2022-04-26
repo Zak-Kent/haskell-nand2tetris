@@ -369,6 +369,59 @@ tClassVarDecX = TestCase (assertEqual "ClassVarDec -> XML"
                          $ fmap xClassVarDec
                          $ tryParse classVarDecP "static int foo, bar;")
 
+tClassX = TestCase (assertEqual "Class -> XML"
+                   (Just
+                     (joinTags
+                       "<class> \
+                         \ <keyword>class</keyword> \
+                         \ <identifier>foo</identifier> \
+                         \ <symbol>{</symbol> \
+                         \ <classVarDec> \
+                           \ <keyword>static</keyword> \
+                           \ <keyword>int</keyword> \
+                           \ <identifier>foo</identifier> \
+                           \ <symbol>;</symbol> \
+                         \ </classVarDec> \
+                         \ <classVarDec> \
+                           \ <keyword>field</keyword> \
+                           \ <keyword>boolean</keyword> \
+                           \ <identifier>bar</identifier> \
+                           \ <symbol>;</symbol> \
+                         \ </classVarDec> \
+                         \ <subroutineDec> \
+                           \ <keyword>method</keyword> \
+                           \ <keyword>void</keyword> \
+                           \ <identifier>baz</identifier> \
+                           \ <symbol>(</symbol> \
+                           \ <parameterList> \
+                             \ <keyword>int</keyword> \
+                             \ <identifier>biz</identifier> \
+                           \ </parameterList> \
+                           \ <symbol>)</symbol> \
+                           \ <subroutineBody> \
+                             \ <symbol>{</symbol> \
+                             \ <doStatement> \
+                               \ <keyword>do</keyword> \
+                               \ <identifier>blarg</identifier> \
+                               \ <symbol>(</symbol> \
+                               \ <expression> \
+                                 \ <term> \
+                                   \ <identifier>biz</identifier> \
+                                 \ </term> \
+                               \ </expression> \
+                               \ <symbol>)</symbol> \
+                             \ </doStatement> \
+                             \ <symbol>}</symbol> \
+                           \ </subroutineBody> \
+                         \ </subroutineDec> \
+                         \ <symbol>}</symbol> \
+                       \ </class>"))
+                   $ fmap xClass
+                   $ tryParse classP "class foo {static int foo; \
+                                               \ field boolean bar; \
+                                               \ method void baz (int biz) \
+                                               \ { do blarg(biz) }}")
+
 terminalElementTests =
   TestList [TestLabel "Keyword -> XML" tKeywordX,
             TestLabel "Symbol -> XML" tSymbolX,
@@ -392,7 +445,8 @@ nonTerminalTests =
             TestLabel "SubroutineBody -> XML" tSubroutineBodyX,
             TestLabel "ParameterList -> XML" tParamListX,
             TestLabel "SubroutineDec -> XML" tSubroutineDecX,
-            TestLabel "ClassVarDec -> XML" tClassVarDecX]
+            TestLabel "ClassVarDec -> XML" tClassVarDecX,
+            TestLabel "Class -> XML" tClassX]
 
 runXMLTests :: Test
 runXMLTests =
