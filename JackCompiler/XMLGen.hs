@@ -143,13 +143,15 @@ xVarDec :: VarDec -> String
 xVarDec (VarDec varKw typ vn vns sc) =
   let varNames = intercalate (xSymbol (Symbol ",")) $
                  map xIdentifier $ [vn] ++ vns
-  in xKeyword varKw
-  ++ xType typ
-  ++ varNames
-  ++ xSymbol sc
+  in xTag "varDec" $
+     xKeyword varKw
+     ++ xType typ
+     ++ varNames
+     ++ xSymbol sc
 
 xSubroutineBody :: SubroutineBody -> String
 xSubroutineBody (SubroutineBody lc varDecs stmts rc) =
+  xTag "subroutineBody" $
   xSymbol lc
   ++ (concat $ map xVarDec varDecs)
   ++ xStatements stmts
@@ -157,5 +159,6 @@ xSubroutineBody (SubroutineBody lc varDecs stmts rc) =
 
 xParameterList :: ParameterList -> String
 xParameterList (ParameterList params) =
+  xTag "parameterList" $
   intercalate (xSymbol (Symbol ",")) $ map xParams params
   where xParams (t, vn) = xType t ++ xIdentifier vn

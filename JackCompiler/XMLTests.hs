@@ -280,34 +280,40 @@ tAllStatementsX = TestCase (assertEqual "AllStatements -> XML"
 tVarDecX = TestCase (assertEqual "VarDec -> XML"
                     (Just
                       (joinTags
-                        "<keyword>var</keyword> \
-                        \ <keyword>int</keyword> \
-                        \ <identifier>foo</identifier> \
-                        \ <symbol>,</symbol> \
-                        \ <identifier>bar</identifier> \
-                        \ <symbol>;</symbol>"))
+                         "<varDec> \
+                            \ <keyword>var</keyword> \
+                            \ <keyword>int</keyword> \
+                            \ <identifier>foo</identifier> \
+                            \ <symbol>,</symbol> \
+                            \ <identifier>bar</identifier> \
+                            \ <symbol>;</symbol> \
+                          \ </varDec>"))
                     $ fmap xVarDec
                     $ tryParse varDecP "var int foo, bar;")
 
 tSubroutineBodyX = TestCase (assertEqual "SubroutingBody -> XML"
                             (Just (joinTags
-                                    "<symbol>{</symbol> \
-                                    \ <keyword>var</keyword> \
-                                    \ <keyword>int</keyword> \
-                                    \ <identifier>foo</identifier> \
-                                    \ <symbol>;</symbol> \
-                                    \ <letStatement> \
-                                      \ <keyword>let</keyword> \
-                                      \ <identifier>foo</identifier> \
-                                      \ <symbol>=</symbol> \
-                                      \ <expression> \
-                                        \ <term> \
-                                          \ <integerConstant>5</integerConstant> \
-                                        \ </term> \
-                                      \ </expression> \
-                                      \ <symbol>;</symbol> \
-                                    \ </letStatement> \
-                                    \ <symbol>}</symbol>"))
+                                    "<subroutineBody> \
+                                      \ <symbol>{</symbol> \
+                                      \ <varDec> \
+                                        \ <keyword>var</keyword> \
+                                        \ <keyword>int</keyword> \
+                                        \ <identifier>foo</identifier> \
+                                        \ <symbol>;</symbol> \
+                                      \ </varDec> \
+                                      \ <letStatement> \
+                                        \ <keyword>let</keyword> \
+                                        \ <identifier>foo</identifier> \
+                                        \ <symbol>=</symbol> \
+                                        \ <expression> \
+                                          \ <term> \
+                                            \ <integerConstant>5</integerConstant> \
+                                          \ </term> \
+                                        \ </expression> \
+                                        \ <symbol>;</symbol> \
+                                      \ </letStatement> \
+                                      \ <symbol>}</symbol> \
+                                      \ </subroutineBody>"))
                             $ fmap xSubroutineBody
                             $ tryParse subroutineBodyP "{var int foo; \
                                                        \ let foo = 5;}")
@@ -315,11 +321,13 @@ tSubroutineBodyX = TestCase (assertEqual "SubroutingBody -> XML"
 tParamListX = TestCase (assertEqual "ParamterList -> XML"
                        (Just
                         (joinTags
-                          "<keyword>int</keyword> \
-                          \ <identifier>foo</identifier> \
-                          \ <symbol>,</symbol> \
-                          \ <keyword>boolean</keyword> \
-                          \ <identifier>bar</identifier>"))
+                          " <parameterList> \
+                            \ <keyword>int</keyword> \
+                            \ <identifier>foo</identifier> \
+                            \ <symbol>,</symbol> \
+                            \ <keyword>boolean</keyword> \
+                            \ <identifier>bar</identifier> \
+                          \ </parameterList>"))
                          $ fmap xParameterList
                          $ tryParse paramListP "int foo, boolean bar")
 
