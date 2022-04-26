@@ -289,6 +289,29 @@ tVarDecX = TestCase (assertEqual "VarDec -> XML"
                     $ fmap xVarDec
                     $ tryParse varDecP "var int foo, bar;")
 
+tSubroutineBodyX = TestCase (assertEqual "SubroutingBody -> XML"
+                            (Just (joinTags
+                                    "<symbol>{</symbol> \
+                                    \ <keyword>var</keyword> \
+                                    \ <keyword>int</keyword> \
+                                    \ <identifier>foo</identifier> \
+                                    \ <symbol>;</symbol> \
+                                    \ <letStatement> \
+                                      \ <keyword>let</keyword> \
+                                      \ <identifier>foo</identifier> \
+                                      \ <symbol>=</symbol> \
+                                      \ <expression> \
+                                        \ <term> \
+                                          \ <integerConstant>5</integerConstant> \
+                                        \ </term> \
+                                      \ </expression> \
+                                      \ <symbol>;</symbol> \
+                                    \ </letStatement> \
+                                    \ <symbol>}</symbol>"))
+                            $ fmap xSubroutineBody
+                            $ tryParse subroutineBodyP "{var int foo; \
+                                                       \ let foo = 5;}")
+
 terminalElementTests =
   TestList [TestLabel "Keyword -> XML" tKeywordX,
             TestLabel "Symbol -> XML" tSymbolX,
@@ -308,7 +331,8 @@ nonTerminalTests =
             TestLabel "LetVarName -> XML" tStatementLetX,
             TestLabel "LetVarNameExpr -> XML" tStatementLetVNExprX,
             TestLabel "AllStatements -> XML" tAllStatementsX,
-            TestLabel "VarDec -> XML" tVarDecX]
+            TestLabel "VarDec -> XML" tVarDecX,
+            TestLabel "SubroutineBody -> XML" tSubroutineBodyX]
 
 runXMLTests :: Test
 runXMLTests =

@@ -147,3 +147,10 @@ xVarDec (VarDec varKw typ vn vns sc) =
   ++ xType typ
   ++ varNames
   ++ xSymbol sc
+
+xSubroutineBody :: SubroutineBody -> String
+xSubroutineBody (SubroutineBody lc varDecs stmts rc) =
+  xSymbol lc
+  ++ (concat $ map xVarDec varDecs)
+  ++ xStatements stmts
+  ++ xSymbol rc
