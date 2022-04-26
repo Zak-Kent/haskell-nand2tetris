@@ -243,11 +243,8 @@ subroutineBodyP = do
 
 paramListP :: Ps.Parsec String () ParameterList
 paramListP = do
-  param <- paramP
-  Ps.spaces
-  Ps.optional $ Ps.string ","
   params <- wrapSps $ Ps.sepBy paramP $ Ps.string ","
-  return (ParameterList $ param:params)
+  return (ParameterList params)
   where paramP = do
           typ <- (typeOrKwP ["int", "char", "boolean"])
           Ps.spaces

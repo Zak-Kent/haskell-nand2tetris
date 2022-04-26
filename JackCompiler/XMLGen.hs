@@ -162,3 +162,14 @@ xParameterList (ParameterList params) =
   xTag "parameterList" $
   intercalate (xSymbol (Symbol ",")) $ map xParams params
   where xParams (t, vn) = xType t ++ xIdentifier vn
+
+xSubroutineDec :: SubroutineDec -> String
+xSubroutineDec (SubroutineDec kw typ sn lp pList rp sb) =
+  xTag "subroutineDec" $
+  xKeyword kw
+  ++ xType typ
+  ++ xIdentifier sn
+  ++ xSymbol lp
+  ++ xParameterList pList -- this produces an empty tag if no params, could be a bug
+  ++ xSymbol rp
+  ++ xSubroutineBody sb

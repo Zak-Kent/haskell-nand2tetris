@@ -331,6 +331,30 @@ tParamListX = TestCase (assertEqual "ParamterList -> XML"
                          $ fmap xParameterList
                          $ tryParse paramListP "int foo, boolean bar")
 
+tSubroutineDecX = TestCase (assertEqual "SubroutineDec -> XML"
+                           (Just
+                             (joinTags
+                               "<subroutineDec> \
+                                 \ <keyword>method</keyword> \
+                                 \ <keyword>void</keyword> \
+                                 \ <identifier>foo</identifier> \
+                                 \ <symbol>(</symbol> \
+                                 \ <parameterList></parameterList> \
+                                 \ <symbol>)</symbol> \
+                                 \ <subroutineBody> \
+                                   \ <symbol>{</symbol> \
+                                   \ <doStatement> \
+                                     \ <keyword>do</keyword> \
+                                     \ <identifier>it</identifier> \
+                                     \ <symbol>(</symbol> \
+                                     \ <symbol>)</symbol> \
+                                   \ </doStatement> \
+                                   \ <symbol>}</symbol> \
+                                 \ </subroutineBody> \
+                               \ </subroutineDec>"))
+                           $ fmap xSubroutineDec
+                           $ tryParse subroutineDecP "method void foo () {do it()}")
+
 terminalElementTests =
   TestList [TestLabel "Keyword -> XML" tKeywordX,
             TestLabel "Symbol -> XML" tSymbolX,
@@ -352,7 +376,8 @@ nonTerminalTests =
             TestLabel "AllStatements -> XML" tAllStatementsX,
             TestLabel "VarDec -> XML" tVarDecX,
             TestLabel "SubroutineBody -> XML" tSubroutineBodyX,
-            TestLabel "ParameterList -> XML" tParamListX]
+            TestLabel "ParameterList -> XML" tParamListX,
+            TestLabel "SubroutineDec -> XML" tSubroutineDecX]
 
 runXMLTests :: Test
 runXMLTests =
