@@ -173,3 +173,13 @@ xSubroutineDec (SubroutineDec kw typ sn lp pList rp sb) =
   ++ xParameterList pList -- this produces an empty tag if no params, could be a bug
   ++ xSymbol rp
   ++ xSubroutineBody sb
+
+xClassVarDec :: ClassVarDec -> String
+xClassVarDec (ClassVarDec kw typ vn vns sc) =
+  let varNames = intercalate (xSymbol (Symbol ",")) $
+                 map xIdentifier $ [vn] ++ vns
+  in xTag "classVarDec" $
+  xKeyword kw
+  ++ xType typ
+  ++ varNames
+  ++ xSymbol sc

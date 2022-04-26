@@ -355,6 +355,20 @@ tSubroutineDecX = TestCase (assertEqual "SubroutineDec -> XML"
                            $ fmap xSubroutineDec
                            $ tryParse subroutineDecP "method void foo () {do it()}")
 
+tClassVarDecX = TestCase (assertEqual "ClassVarDec -> XML"
+                         (Just
+                           (joinTags
+                             "<classVarDec> \
+                               \ <keyword>static</keyword> \
+                               \ <keyword>int</keyword> \
+                               \ <identifier>foo</identifier> \
+                               \ <symbol>,</symbol> \
+                               \ <identifier>bar</identifier> \
+                               \ <symbol>;</symbol> \
+                             \ </classVarDec>"))
+                         $ fmap xClassVarDec
+                         $ tryParse classVarDecP "static int foo, bar;")
+
 terminalElementTests =
   TestList [TestLabel "Keyword -> XML" tKeywordX,
             TestLabel "Symbol -> XML" tSymbolX,
@@ -377,7 +391,8 @@ nonTerminalTests =
             TestLabel "VarDec -> XML" tVarDecX,
             TestLabel "SubroutineBody -> XML" tSubroutineBodyX,
             TestLabel "ParameterList -> XML" tParamListX,
-            TestLabel "SubroutineDec -> XML" tSubroutineDecX]
+            TestLabel "SubroutineDec -> XML" tSubroutineDecX,
+            TestLabel "ClassVarDec -> XML" tClassVarDecX]
 
 runXMLTests :: Test
 runXMLTests =
