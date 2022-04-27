@@ -192,7 +192,8 @@ doP :: Ps.Parsec String () Statement
 doP = do
   d <- keywordP "do"
   (SubroutineCall subCall) <- subroutineCallP
-  return (Do d subCall)
+  sc <- symP ";"
+  return (Do d subCall sc)
 
 returnP :: Ps.Parsec String () Statement
 returnP = do

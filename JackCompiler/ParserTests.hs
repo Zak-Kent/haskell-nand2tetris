@@ -288,8 +288,9 @@ tDoSubCallStatement = TestCase (assertEqual "do what.huh()"
                                       (Identifier "huh")
                                       (Symbol "(")
                                       []
-                                      (Symbol ")"))))
-                                 $ parseIt doP "do what.huh()")
+                                      (Symbol ")"))
+                                     (Symbol ";")))
+                                 $ parseIt doP "do what.huh() ;")
 
 tReturnStatementWithExpr = TestCase (assertEqual "return 1 + 2;"
                                       (Right
@@ -365,10 +366,11 @@ tSubroutineBodyNoVars = TestCase (assertEqual "subroutine body with no vars"
                                            (Identifier "huh")
                                            (Symbol "(")
                                            []
-                                           (Symbol ")")))]
+                                           (Symbol ")"))
+                                       (Symbol ";"))]
                                      (Symbol "}")))
                                  $ parseIt subroutineBodyP
-                                 "{   do what.huh() }")
+                                 "{   do what.huh(); }")
 
 tParamListOneParam = TestCase (assertEqual "param list with one param"
                                 (Right
@@ -416,7 +418,7 @@ tSubroutineDec = TestCase (assertEqual "subroutine declaration"
                                     Nothing (Symbol ";")]
                                   (Symbol "}"))))
                           $ parseIt subroutineDecP
-                          "method void foo (int arg1 boolean arg2) \
+                          "method void foo (int arg1, boolean arg2) \
                           \ { var int baz; let baz = arg1 + 5; return;}")
 
 

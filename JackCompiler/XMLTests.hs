@@ -197,7 +197,7 @@ tStatementLetVNExprX = TestCase (assertEqual "LetVarNameExpr -> XML"
 tAllStatementsX = TestCase (assertEqual "AllStatements -> XML"
                                 (Just
                                   (joinTags
-                                   "<ifStatement> \
+                                    "<ifStatement> \
                                       \ <keyword>if</keyword> \
                                       \ <symbol>(</symbol> \
                                       \ <expression> \
@@ -234,6 +234,7 @@ tAllStatementsX = TestCase (assertEqual "AllStatements -> XML"
                                           \ </term> \
                                         \ </expression> \
                                         \ <symbol>)</symbol> \
+                                        \ <symbol>;</symbol> \
                                       \ </doStatement> \
                                       \ <returnStatement> \
                                         \ <keyword>return</keyword> \
@@ -264,6 +265,7 @@ tAllStatementsX = TestCase (assertEqual "AllStatements -> XML"
                                           \ <identifier>baz</identifier> \
                                           \ <symbol>(</symbol> \
                                           \ <symbol>)</symbol> \
+                                          \ <symbol>;</symbol> \
                                         \ </doStatement> \
                                         \ <symbol>}</symbol> \
                                       \ </whileStatement> \
@@ -272,10 +274,10 @@ tAllStatementsX = TestCase (assertEqual "AllStatements -> XML"
                                 $ fmap xStatement
                                 $ tryParse statementP "if (true) \
                                                       \ {let foo = 5; \
-                                                      \  do bar(1, 2)  \
+                                                      \  do bar(1, 2);  \
                                                       \  return 42; } \
                                                       \ else {while (false) \
-                                                      \      {do bar.baz()}};")
+                                                      \      {do bar.baz();}};")
 
 tVarDecX = TestCase (assertEqual "VarDec -> XML"
                     (Just
@@ -348,12 +350,13 @@ tSubroutineDecX = TestCase (assertEqual "SubroutineDec -> XML"
                                      \ <identifier>it</identifier> \
                                      \ <symbol>(</symbol> \
                                      \ <symbol>)</symbol> \
+                                     \<symbol>;</symbol> \
                                    \ </doStatement> \
                                    \ <symbol>}</symbol> \
                                  \ </subroutineBody> \
                                \ </subroutineDec>"))
                            $ fmap xSubroutineDec
-                           $ tryParse subroutineDecP "method void foo () {do it()}")
+                           $ tryParse subroutineDecP "method void foo () {do it();}")
 
 tClassVarDecX = TestCase (assertEqual "ClassVarDec -> XML"
                          (Just
@@ -410,6 +413,7 @@ tClassX = TestCase (assertEqual "Class -> XML"
                                  \ </term> \
                                \ </expression> \
                                \ <symbol>)</symbol> \
+                               \ <symbol>;</symbol> \
                              \ </doStatement> \
                              \ <symbol>}</symbol> \
                            \ </subroutineBody> \
@@ -420,7 +424,7 @@ tClassX = TestCase (assertEqual "Class -> XML"
                    $ tryParse classP "class foo {static int foo; \
                                                \ field boolean bar; \
                                                \ method void baz (int biz) \
-                                               \ { do blarg(biz) }}")
+                                               \ { do blarg(biz); }}")
 
 terminalElementTests =
   TestList [TestLabel "Keyword -> XML" tKeywordX,

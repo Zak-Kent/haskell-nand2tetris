@@ -40,7 +40,7 @@ data Statement =
   | If Keyword Symbol Expr Symbol Symbol Statements Symbol (Maybe Else)
   -- 'while' '(' expr ')' '{' statements '}'
   | While Keyword Symbol Expr Symbol Symbol Statements Symbol
-  | Do Keyword SubCall
+  | Do Keyword SubCall Symbol
   -- 'return' (expr)? ';'
   | Return Keyword (Maybe Expr) Symbol
   deriving (Show, Eq)

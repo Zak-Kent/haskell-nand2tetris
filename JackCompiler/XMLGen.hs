@@ -108,7 +108,7 @@ xStatement (While kw lp expr rp lc stmts rc) =
   ++ xStatements stmts
   ++ xSymbol rc
 
-xStatement (Do kw subCall) =
+xStatement (Do kw subCall sc) =
   let sCall = case subCall of
         (SubCallName scn lp exprs rp) ->
           xIdentifier scn
@@ -125,6 +125,7 @@ xStatement (Do kw subCall) =
   in xTag "doStatement" $
   xKeyword kw
   ++ sCall
+  ++ xSymbol sc
 
 xStatement (Return kw maybeExpr sc) =
   let mExpr = case maybeExpr of
