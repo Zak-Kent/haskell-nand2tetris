@@ -421,7 +421,9 @@ tClassX = TestCase (assertEqual "Class -> XML"
                          \ <symbol>}</symbol> \
                        \ </class>"))
                    $ fmap xClass
-                   $ tryParse classP "class foo {static int foo; \
+                   $ tryParse classP "// comment 1 \n //comment 2 \n \
+                                     \ class foo {static int foo; \
+                                              \/** block comment */ \
                                                \ field boolean bar; \
                                                \ method void baz (int biz) \
                                                \ { do blarg(biz); }}")

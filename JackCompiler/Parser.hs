@@ -3,21 +3,44 @@ module Parser where
 import AST
 import qualified Text.Parsec as Ps
 
-wrapSps :: (Ps.Parsec String () a) -> (Ps.Parsec String () a)
-wrapSps p = do
-  {- Allow spaces on either side of parser's target -}
+commentLineP :: Ps.Parsec String () ()
+commentLineP = do
   Ps.spaces
+  _ <- Ps.string "//"
+  _ <- Ps.manyTill Ps.anyChar (Ps.try $ Ps.oneOf "\n\r\t")
+  Ps.spaces
+  return ()
+
+commentBlockP :: Ps.Parsec String () ()
+commentBlockP = do
+  Ps.spaces
+  _ <- Ps.string "/*"
+  _ <- Ps.manyTill Ps.anyChar (Ps.try $ Ps.string "*/")
+  Ps.spaces
+  return ()
+
+commentsP :: Ps.Parsec String () ()
+commentsP = do
+  Ps.spaces
+  _ <- Ps.many $ Ps.choice $ map Ps.try [commentLineP, commentBlockP]
+  Ps.spaces
+  return ()
+
+wrapEscapes :: (Ps.Parsec String () a) -> (Ps.Parsec String () a)
+wrapEscapes p = do
+  {- Allow spaces or comments on either side of parser's target -}
+  _ <- commentsP
   out <- p
-  Ps.spaces
+  _ <- commentsP
   return out
 
 chooseLit :: [String] -> Ps.Parsec String () String
-chooseLit xs = wrapSps $ Ps.choice [Ps.try $ Ps.string x | x <- xs]
+chooseLit xs = wrapEscapes $ Ps.choice [Ps.try $ Ps.string x | x <- xs]
 
 -- Terminal element parsers
 symP :: String -> Ps.Parsec String () Symbol
 symP s = do
-  r <- wrapSps $ Ps.string s
+  r <- wrapEscapes $ Ps.string s
   return (Symbol r)
 
 symsP :: [String] -> Ps.Parsec String () Symbol
@@ -32,7 +55,7 @@ keywordsP xs = do
 
 keywordP :: String -> Ps.Parsec String () Keyword
 keywordP kw = do
-  pkw <- wrapSps $ Ps.string kw
+  pkw <- wrapEscapes $ Ps.string kw
   return (Keyword pkw)
 
 opP :: Ps.Parsec String () Op
@@ -52,22 +75,22 @@ identifierP = do
 -- Expr parsers
 opTermP :: Ps.Parsec String () (Op, Term)
 opTermP = do
-  op <- wrapSps opP
-  t <- wrapSps termP
+  op <- wrapEscapes opP
+  t <- wrapEscapes termP
   return (op, t)
 
 exprP :: Ps.Parsec String () Expr
 exprP = do
-  t <- wrapSps termP
-  opTerms <- wrapSps $ Ps.many opTermP
+  t <- wrapEscapes termP
+  opTerms <- wrapEscapes $ Ps.many opTermP
   return (Expr t opTerms)
 
 -- SubCall parsers
 subCallNameP :: Ps.Parsec String () SubCall
 subCallNameP = do
-  scn <- wrapSps identifierP
+  scn <- wrapEscapes identifierP
   lp <- symP "("
-  exprList <- wrapSps $ Ps.sepBy exprP $ Ps.string ","
+  exprList <- wrapEscapes $ Ps.sepBy exprP $ Ps.string ","
   rp <- symP ")"
   return (SubCallName scn lp exprList rp)
 
@@ -77,7 +100,7 @@ subCallClassOrVarP = do
   dot <- symP "."
   sn <- identifierP
   lp <- symP "("
-  exprList <- wrapSps $ Ps.sepBy exprP $ Ps.string ","
+  exprList <- wrapEscapes $ Ps.sepBy exprP $ Ps.string ","
   rp <- symP ")"
   return (SubCallClassOrVar n dot sn lp exprList rp)
 
@@ -230,7 +253,7 @@ varDecP = do
   Ps.optional $ Ps.string ","
   -- varNList is dropping all the ',' symbols, you'll need to account for
   -- this in the xml generation
-  varNList <- wrapSps $ Ps.sepBy identifierP $ Ps.string ","
+  varNList <- wrapEscapes $ Ps.sepBy identifierP $ Ps.string ","
   sc <- symP ";"
   return (VarDec var typ varN varNList sc)
 
@@ -244,7 +267,7 @@ subroutineBodyP = do
 
 paramListP :: Ps.Parsec String () ParameterList
 paramListP = do
-  params <- wrapSps $ Ps.sepBy paramP $ Ps.string ","
+  params <- wrapEscapes $ Ps.sepBy paramP $ Ps.string ","
   return (ParameterList params)
   where paramP = do
           typ <- (typeOrKwP ["int", "char", "boolean"])
@@ -272,7 +295,7 @@ classVarDecP = do
   Ps.optional $ Ps.string ","
   -- varNList is dropping all the ',' symbols, you'll need to account for
   -- this in the xml generation
-  varNList <- wrapSps $ Ps.sepBy identifierP $ Ps.string ","
+  varNList <- wrapEscapes $ Ps.sepBy identifierP $ Ps.string ","
   sc <- symP ";"
   return (ClassVarDec kw typ varN varNList sc)
 
@@ -286,7 +309,5 @@ classP = do
   rc <- symP "}"
   return (Class cls clsName lc clsVarDecs subRDecs rc)
 
-main :: IO ()
-main = do
-  let blarg = Ps.parse identifierP "error file" "hah ahhaa4"
-  print blarg
+parseJack :: String -> Either Ps.ParseError Class
+parseJack f = Ps.parse classP f f
