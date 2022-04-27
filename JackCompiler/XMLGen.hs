@@ -5,8 +5,15 @@ import Data.List
 
 import AST
 
+xEscape :: String -> String
+xEscape "<"  = "&lt;"
+xEscape ">"  = "&gt;"
+xEscape "&"  = "&amp;"
+xEscape "\"" = "&quot;"
+xEscape x    = x
+
 xTag :: String -> String -> String
-xTag name val = printf "<%s>%s</%s>" name val name
+xTag name val = printf "<%s>%s</%s>" name (xEscape val) name
 
 xSymbol :: Symbol -> String
 xSymbol (Symbol s) = xTag "symbol" s
