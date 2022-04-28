@@ -13,7 +13,10 @@ xEscape "\"" = "&quot;"
 xEscape x    = x
 
 xTag :: String -> String -> String
-xTag name val = printf "<%s>%s</%s>" name (xEscape val) name
+xTag name val = printf "<%s> %s </%s>\n" name (xEscape val) name
+
+xTagMultiLine :: String -> String -> String
+xTagMultiLine name val = printf "<%s>\n %s </%s>\n" name val name
 
 xSymbol :: Symbol -> String
 xSymbol (Symbol s) = xTag "symbol" s
@@ -28,11 +31,12 @@ xOpTerms :: (Op, Term) -> String
 xOpTerms ((Op o), t) = xSymbol o ++ xTerm t
 
 xExpr :: Expr -> String
-xExpr (Expr t opTerms) = xTag "expression"
+xExpr (Expr t opTerms) = xTagMultiLine "expression"
   (concat $ [xTerm t] ++ (map xOpTerms opTerms))
 
 xExprs :: [Expr] -> String
-xExprs exprs = intercalate (xSymbol (Symbol ",")) $ map xExpr exprs
+xExprs exprs = xTagMultiLine "expressionList"
+               $ intercalate (xSymbol (Symbol ",")) $ map xExpr exprs
 
 xSubCall :: SubCall -> String
 xSubCall (SubCallName sName lp exprs rp) =
@@ -49,12 +53,14 @@ xSubCall (SubCallClassOrVar cOrVName dot sName lp exprs rp) =
   ++ xSymbol rp
 
 xWrapT :: String -> String
-xWrapT t = printf "<term>%s</term>" t
+xWrapT t = printf "<term>\n %s </term>\n" t
 
 xTerm :: Term -> String
 xTerm (IntegerConstant i) = xWrapT $ xTag "integerConstant" $ show i
 xTerm (StringConstant s) = xWrapT $ xTag "stringConstant" s
-xTerm (KeywordConstant k) = xWrapT $ xTag "keywordConstant" k
+-- the grader expects "keyword" even though the grammar has "keywordConstant"
+-- as the type
+xTerm (KeywordConstant k) = xWrapT $ xTag "keyword" k
 -- TODO: might not need to wrap xIdentifier in term tag
 xTerm (VarName i) = xWrapT $ xIdentifier i -- VarName becomes an identifier tag
 xTerm (UnaryOp s t) = xWrapT $ xSymbol s ++ xTerm t
@@ -68,7 +74,7 @@ xTerm (ParenExpr lp expr rp) = xWrapT $ xSymbol lp ++ xExpr expr ++ xSymbol rp
 xTerm (SubroutineCall subCall) = xWrapT $ xSubCall subCall
 
 xStatements :: [Statement] -> String
-xStatements stmts = concat $ map xStatement stmts
+xStatements stmts = xTagMultiLine "statements" $ concat $ map xStatement stmts
 
 xStatement :: Statement -> String
 xStatement (Let kw varName eq expr sc) =
@@ -80,7 +86,7 @@ xStatement (Let kw varName eq expr sc) =
           ++ xSymbol lb
           ++ xExpr expr'
           ++ xSymbol rb
-  in xTag "letStatement" $
+  in xTagMultiLine "letStatement" $
   xKeyword kw
   ++ varN
   ++ xSymbol eq
@@ -95,7 +101,7 @@ xStatement (If kw lp expr rp lc stmts rc maybeStmts) =
           ++ xStatements stmts'
           ++ xSymbol rc'
         Nothing -> ""
-  in xTag "ifStatement" $
+  in xTagMultiLine "ifStatement" $
   xKeyword kw
   ++ xSymbol lp
   ++ xExpr expr
@@ -106,7 +112,7 @@ xStatement (If kw lp expr rp lc stmts rc maybeStmts) =
   ++ mStmts
 
 xStatement (While kw lp expr rp lc stmts rc) =
-  xTag "whileStatement" $
+  xTagMultiLine "whileStatement" $
   xKeyword kw
   ++ xSymbol lp
   ++ xExpr expr
@@ -129,7 +135,7 @@ xStatement (Do kw subCall sc) =
           ++ xSymbol lp
           ++ xExprs exprs
           ++ xSymbol rp
-  in xTag "doStatement" $
+  in xTagMultiLine "doStatement" $
   xKeyword kw
   ++ sCall
   ++ xSymbol sc
@@ -138,7 +144,7 @@ xStatement (Return kw maybeExpr sc) =
   let mExpr = case maybeExpr of
         (Just expr) -> xExpr expr
         Nothing -> ""
-  in xTag "returnStatement" $
+  in xTagMultiLine "returnStatement" $
   xKeyword kw
   ++ mExpr
   ++ xSymbol sc
@@ -151,7 +157,7 @@ xVarDec :: VarDec -> String
 xVarDec (VarDec varKw typ vn vns sc) =
   let varNames = intercalate (xSymbol (Symbol ",")) $
                  map xIdentifier $ [vn] ++ vns
-  in xTag "varDec" $
+  in xTagMultiLine "varDec" $
      xKeyword varKw
      ++ xType typ
      ++ varNames
@@ -159,7 +165,7 @@ xVarDec (VarDec varKw typ vn vns sc) =
 
 xSubroutineBody :: SubroutineBody -> String
 xSubroutineBody (SubroutineBody lc varDecs stmts rc) =
-  xTag "subroutineBody" $
+  xTagMultiLine "subroutineBody" $
   xSymbol lc
   ++ (concat $ map xVarDec varDecs)
   ++ xStatements stmts
@@ -167,13 +173,13 @@ xSubroutineBody (SubroutineBody lc varDecs stmts rc) =
 
 xParameterList :: ParameterList -> String
 xParameterList (ParameterList params) =
-  xTag "parameterList" $
+  xTagMultiLine "parameterList" $
   intercalate (xSymbol (Symbol ",")) $ map xParams params
   where xParams (t, vn) = xType t ++ xIdentifier vn
 
 xSubroutineDec :: SubroutineDec -> String
 xSubroutineDec (SubroutineDec kw typ sn lp pList rp sb) =
-  xTag "subroutineDec" $
+  xTagMultiLine "subroutineDec" $
   xKeyword kw
   ++ xType typ
   ++ xIdentifier sn
@@ -186,7 +192,7 @@ xClassVarDec :: ClassVarDec -> String
 xClassVarDec (ClassVarDec kw typ vn vns sc) =
   let varNames = intercalate (xSymbol (Symbol ",")) $
                  map xIdentifier $ [vn] ++ vns
-  in xTag "classVarDec" $
+  in xTagMultiLine "classVarDec" $
   xKeyword kw
   ++ xType typ
   ++ varNames
@@ -194,7 +200,7 @@ xClassVarDec (ClassVarDec kw typ vn vns sc) =
 
 xClass :: Class -> String
 xClass (Class kw cn lc clsVars subDecs rc) =
-  xTag "class" $
+  xTagMultiLine "class" $
   xKeyword kw
   ++ xIdentifier cn
   ++ xSymbol lc

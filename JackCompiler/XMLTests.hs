@@ -20,16 +20,19 @@ tryParse p s = case parseIt p s of
 
 tKeywordX = TestCase (assertEqual "Keyword -> XML"
                       (Just "<keyword>class</keyword>")
+                      $ fmap joinTags
                       $ fmap xKeyword
                       $ tryParse (keywordP "class") "class")
 
 tSymbolX = TestCase (assertEqual "Symbol -> XML"
                      (Just "<symbol>(</symbol>")
+                     $ fmap joinTags
                      $ fmap xSymbol
                      $ tryParse (symP "(") "(")
 
 tIdentifierX = TestCase (assertEqual "Identifier -> XML"
                          (Just "<identifier>foo</identifier>")
+                         $ fmap joinTags
                          $ fmap xIdentifier
                          $ tryParse identifierP "foo")
 
@@ -38,6 +41,7 @@ tTermIntConstX = TestCase (assertEqual "IntegerConstant -> XML"
                                   "<term> \
                                   \ <integerConstant>5</integerConstant> \
                                  \ </term>"))
+                           $ fmap joinTags
                            $ fmap xTerm
                            $ tryParse termP "5")
 
@@ -46,20 +50,23 @@ tTermStrConstX = TestCase (assertEqual "StringConstant -> XML"
                                   "<term> \
                                     \ <stringConstant>foo</stringConstant> \
                                   \ </term>"))
+                           $ fmap joinTags
                            $ fmap xTerm
                            $ tryParse termP "\"foo\"")
 
 tTermKeywordConstX = TestCase (assertEqual "KeywordConstant -> XML"
                               (Just (joinTags
                                     "<term> \
-                                      \ <keywordConstant>null</keywordConstant> \
+                                      \ <keyword>null</keyword> \
                                     \</term>"))
+                                $ fmap joinTags
                                 $ fmap xTerm
                                 $ tryParse termP "null")
 
 tTermVarNameX = TestCase (assertEqual "VarName -> XML"
                          (Just
                           "<term><identifier>foo</identifier></term>")
+                         $ fmap joinTags
                          $ fmap xTerm
                          $ tryParse termP "foo")
 
@@ -75,30 +82,35 @@ tExprX = TestCase (assertEqual "Expr -> XML"
                         \ <integerConstant>10</integerConstant> \
                       \ </term> \
                     \ </expression>"))
+                   $ fmap joinTags
                    $ fmap xExpr
                    $ tryParse exprP "5 + 10")
 
 tSubCallNameX = TestCase (assertEqual "SubCallName -> XML"
                          (Just
                           (joinTags
-                           "<term> \
+                            "<term> \
                              \ <identifier>foo</identifier> \
                              \ <symbol>(</symbol> \
+                             \ <expressionList></expressionList> \
                              \ <symbol>)</symbol> \
                            \ </term>"))
+                          $ fmap joinTags
                           $ fmap xTerm
                           $ tryParse termP "foo()")
 
 tSubClassOrVarX = TestCase (assertEqual "SubCallClassOrVar -> XML"
                            (Just
                             (joinTags
-                             "<term>< \
+                              "<term>< \
                                 \ identifier>what</identifier> \
                                 \ <symbol>.</symbol> \
                                 \ <identifier>huh</identifier> \
                                 \ <symbol>(</symbol> \
+                                \ <expressionList></expressionList> \
                                 \ <symbol>)</symbol> \
                               \ </term>"))
+                           $ fmap joinTags
                            $ fmap xTerm
                            $ tryParse termP "what.huh()")
 
@@ -115,6 +127,7 @@ tVarNameArrayAccessX = TestCase (assertEqual "VarNameExpr -> XML"
                                     \ </expression> \
                                     \ <symbol>]</symbol> \
                                   \ </term>"))
+                                $ fmap joinTags
                                 $ fmap xTerm
                                 $ tryParse termP "foo[1]")
 
@@ -130,6 +143,7 @@ tTermUnaryOpX = TestCase (assertEqual "UnaryOp -> XML"
                               \ <identifier>foo</identifier> \
                             \ </term> \
                           \ </term>"))
+                         $ fmap joinTags
                          $ fmap xTerm
                          $ tryParse termP "~foo")
 
@@ -148,8 +162,8 @@ tTermParenExprX = TestCase (assertEqual "ParenExpr -> XML"
                                 \ </term> \
                               \ </expression> \
                               \ <symbol>)</symbol> \
-                            \ </term>"
-                             ))
+                            \ </term>"))
+                           $ fmap joinTags
                            $ fmap xTerm
                            $ tryParse termP "(1 + 2)")
 
@@ -167,6 +181,7 @@ tStatementLetX = TestCase (assertEqual "LetVarName -> XML"
                                 \ </expression> \
                                 \ <symbol>;</symbol> \
                               \ </letStatement>"))
+                          $ fmap joinTags
                           $ fmap xStatement
                           $ tryParse statementP "let foo = 5;")
 
@@ -191,6 +206,7 @@ tStatementLetVNExprX = TestCase (assertEqual "LetVarNameExpr -> XML"
                                     \ </expression> \
                                     \ <symbol>;</symbol> \
                                   \ </letStatement>"))
+                                $ fmap joinTags
                                 $ fmap xStatement
                                 $ tryParse statementP "let foo[5] = 12;")
 
@@ -202,11 +218,12 @@ tAllStatementsX = TestCase (assertEqual "AllStatements -> XML"
                                       \ <symbol>(</symbol> \
                                       \ <expression> \
                                         \ <term> \
-                                          \ <keywordConstant>true</keywordConstant> \
+                                          \ <keyword>true</keyword> \
                                         \ </term> \
                                       \ </expression> \
                                       \ <symbol>)</symbol> \
                                       \ <symbol>{</symbol> \
+                                      \ <statements> \
                                       \ <letStatement> \
                                         \ <keyword>let</keyword> \
                                         \ <identifier>foo</identifier> \
@@ -222,17 +239,19 @@ tAllStatementsX = TestCase (assertEqual "AllStatements -> XML"
                                         \ <keyword>do</keyword> \
                                         \ <identifier>bar</identifier> \
                                         \ <symbol>(</symbol> \
-                                        \ <expression> \
-                                          \ <term> \
-                                            \ <integerConstant>1</integerConstant> \
-                                          \ </term> \
-                                        \ </expression> \
-                                        \ <symbol>,</symbol> \
-                                        \ <expression> \
-                                          \ <term> \
-                                            \ <integerConstant>2</integerConstant> \
-                                          \ </term> \
-                                        \ </expression> \
+                                         \ <expressionList> \
+                                          \ <expression> \
+                                            \ <term> \
+                                              \ <integerConstant>1</integerConstant> \
+                                            \ </term> \
+                                          \ </expression> \
+                                          \ <symbol>,</symbol> \
+                                          \ <expression> \
+                                            \ <term> \
+                                              \ <integerConstant>2</integerConstant> \
+                                            \ </term> \
+                                          \ </expression> \
+                                        \ </expressionList> \
                                         \ <symbol>)</symbol> \
                                         \ <symbol>;</symbol> \
                                       \ </doStatement> \
@@ -245,32 +264,39 @@ tAllStatementsX = TestCase (assertEqual "AllStatements -> XML"
                                         \ </expression> \
                                         \ <symbol>;</symbol> \
                                       \ </returnStatement> \
+                                      \ </statements> \
                                       \ <symbol>}</symbol> \
                                       \ <keyword>else</keyword> \
                                       \ <symbol>{</symbol> \
+                                      \ <statements> \
                                       \ <whileStatement> \
                                         \ <keyword>while</keyword> \
                                         \ <symbol>(</symbol> \
                                         \ <expression> \
                                           \ <term> \
-                                            \ <keywordConstant>false</keywordConstant> \
+                                            \ <keyword>false</keyword> \
                                           \ </term> \
                                         \ </expression> \
                                         \ <symbol>)</symbol> \
                                         \ <symbol>{</symbol> \
+                                        \ <statements> \
                                         \ <doStatement> \
                                           \ <keyword>do</keyword> \
                                           \ <identifier>bar</identifier> \
                                           \ <symbol>.</symbol> \
                                           \ <identifier>baz</identifier> \
                                           \ <symbol>(</symbol> \
+                                          \ <expressionList></expressionList> \
                                           \ <symbol>)</symbol> \
                                           \ <symbol>;</symbol> \
                                         \ </doStatement> \
+                                        \ </statements> \
                                         \ <symbol>}</symbol> \
                                       \ </whileStatement> \
+                                      \ </statements> \
                                       \ <symbol>}</symbol> \
                                     \ </ifStatement>"))
+                                $ fmap joinTags
                                 $ fmap xStatement
                                 $ tryParse statementP "if (true) \
                                                       \ {let foo = 5; \
@@ -290,6 +316,7 @@ tVarDecX = TestCase (assertEqual "VarDec -> XML"
                             \ <identifier>bar</identifier> \
                             \ <symbol>;</symbol> \
                           \ </varDec>"))
+                    $ fmap joinTags
                     $ fmap xVarDec
                     $ tryParse varDecP "var int foo, bar;")
 
@@ -303,6 +330,7 @@ tSubroutineBodyX = TestCase (assertEqual "SubroutingBody -> XML"
                                         \ <identifier>foo</identifier> \
                                         \ <symbol>;</symbol> \
                                       \ </varDec> \
+                                      \ <statements> \
                                       \ <letStatement> \
                                         \ <keyword>let</keyword> \
                                         \ <identifier>foo</identifier> \
@@ -314,8 +342,10 @@ tSubroutineBodyX = TestCase (assertEqual "SubroutingBody -> XML"
                                         \ </expression> \
                                         \ <symbol>;</symbol> \
                                       \ </letStatement> \
+                                      \ </statements> \
                                       \ <symbol>}</symbol> \
                                       \ </subroutineBody>"))
+                            $ fmap joinTags
                             $ fmap xSubroutineBody
                             $ tryParse subroutineBodyP "{var int foo; \
                                                        \ let foo = 5;}")
@@ -330,6 +360,7 @@ tParamListX = TestCase (assertEqual "ParamterList -> XML"
                             \ <keyword>boolean</keyword> \
                             \ <identifier>bar</identifier> \
                           \ </parameterList>"))
+                         $ fmap joinTags
                          $ fmap xParameterList
                          $ tryParse paramListP "int foo, boolean bar")
 
@@ -345,16 +376,20 @@ tSubroutineDecX = TestCase (assertEqual "SubroutineDec -> XML"
                                  \ <symbol>)</symbol> \
                                  \ <subroutineBody> \
                                    \ <symbol>{</symbol> \
+                                   \ <statements> \
                                    \ <doStatement> \
                                      \ <keyword>do</keyword> \
                                      \ <identifier>it</identifier> \
                                      \ <symbol>(</symbol> \
+                                     \ <expressionList></expressionList> \
                                      \ <symbol>)</symbol> \
                                      \<symbol>;</symbol> \
                                    \ </doStatement> \
+                                   \ </statements> \
                                    \ <symbol>}</symbol> \
                                  \ </subroutineBody> \
                                \ </subroutineDec>"))
+                           $ fmap joinTags
                            $ fmap xSubroutineDec
                            $ tryParse subroutineDecP "method void foo () {do it();}")
 
@@ -369,6 +404,7 @@ tClassVarDecX = TestCase (assertEqual "ClassVarDec -> XML"
                                \ <identifier>bar</identifier> \
                                \ <symbol>;</symbol> \
                              \ </classVarDec>"))
+                         $ fmap joinTags
                          $ fmap xClassVarDec
                          $ tryParse classVarDecP "static int foo, bar;")
 
@@ -379,7 +415,7 @@ tClassX = TestCase (assertEqual "Class -> XML"
                          \ <keyword>class</keyword> \
                          \ <identifier>foo</identifier> \
                          \ <symbol>{</symbol> \
-                         \ <classVarDec> \
+                         \ <classVarDec>\n \
                            \ <keyword>static</keyword> \
                            \ <keyword>int</keyword> \
                            \ <identifier>foo</identifier> \
@@ -402,24 +438,29 @@ tClassX = TestCase (assertEqual "Class -> XML"
                            \ </parameterList> \
                            \ <symbol>)</symbol> \
                            \ <subroutineBody> \
-                             \ <symbol>{</symbol> \
+                             \ <symbol>{</symbol>\n \
+                             \ <statements> \
                              \ <doStatement> \
                                \ <keyword>do</keyword> \
                                \ <identifier>blarg</identifier> \
                                \ <symbol>(</symbol> \
+                              \ <expressionList> \
                                \ <expression> \
                                  \ <term> \
                                    \ <identifier>biz</identifier> \
                                  \ </term> \
                                \ </expression> \
-                               \ <symbol>)</symbol> \
-                               \ <symbol>;</symbol> \
+                              \ </expressionList> \
+                               \ <symbol>)</symbol>\n \
+                               \ <symbol>;</symbol>\n \
                              \ </doStatement> \
+                             \ </statements> \
                              \ <symbol>}</symbol> \
-                           \ </subroutineBody> \
+                           \ </subroutineBody>\n \
                          \ </subroutineDec> \
                          \ <symbol>}</symbol> \
                        \ </class>"))
+                   $ fmap joinTags
                    $ fmap xClass
                    $ tryParse classP "// comment 1 \n //comment 2 \n \
                                      \ class foo {static int foo; \
