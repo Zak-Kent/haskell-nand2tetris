@@ -63,29 +63,41 @@ tIdentifierPNoDigit =
 
 -- exprP tests
 tExprOneTerm = TestCase (assertEqual "an expression with one term parses"
-                        (Right (Expr (IntegerConstant 5) []))
+                        (Right (Expr (Leaf (IntegerConstant 5))))
                         $ parseIt exprP "5")
 
 tExprTwoTerms = TestCase (assertEqual "an expression with two terms parses"
-                        (Right (Expr (IntegerConstant 5)
-                                [(Op (Symbol "+"), (IntegerConstant 8))]))
+                        (Right (Expr (Node (Leaf (IntegerConstant 5))
+                                       (Op (Symbol "+"))
+                                       (Leaf (IntegerConstant 8)))))
                         $ parseIt exprP "5 + 8")
 
 tExprManyTerms = TestCase (assertEqual "an expression with many terms parses"
-                        (Right (Expr (VarName (Identifier "foo"))
-                                [(Op (Symbol "="), (IntegerConstant 4)),
-                                 (Op (Symbol "+"), (IntegerConstant 2))]))
+                          (Right
+                           (Expr
+                            (Node (Leaf (VarName (Identifier "foo")))
+                             (Op (Symbol "="))
+                             (Node (Leaf (IntegerConstant 4))
+                              (Op (Symbol "+"))
+                              (Leaf (IntegerConstant 2))))))
                         $ parseIt exprP "foo = 4 + 2")
 
 -- subCallNameP tests
 tBasicSubCall = TestCase (assertEqual "a sub routine with expr list parses"
-                         (Right (SubCallName (Identifier "foo")
-                                (Symbol "(")
-                                [(Expr (IntegerConstant 5)
-                                  [(Op (Symbol "+"), (IntegerConstant 8))]),
-                                  (Expr (IntegerConstant 10)
-                                  [(Op (Symbol "-"), (IntegerConstant 42))])]
-                                (Symbol ")")))
+                         (Right
+                          (SubCallName (Identifier "foo")
+                            (Symbol "(")
+                            [Expr
+                              (Node
+                                (Leaf (IntegerConstant 5))
+                                (Op (Symbol "+"))
+                                (Leaf (IntegerConstant 8))),
+                              Expr
+                              (Node
+                                (Leaf (IntegerConstant 10))
+                                (Op (Symbol "-"))
+                                (Leaf (IntegerConstant 42)))]
+                            (Symbol ")")))
                            $ parseIt subCallNameP "foo (5+8, 10  - 42)")
 
 tSubCallNoExprs = TestCase (assertEqual "a sub routine with no exprs"
@@ -101,10 +113,16 @@ tSubCallClassWithExprs = TestCase (assertEqual "a class sub routine with exprs"
                                          (Symbol ".")
                                          (Identifier "bar")
                                          (Symbol "(")
-                                         [(Expr (VarName (Identifier  "bb"))
-                                           [(Op (Symbol "="), (IntegerConstant 5))]),
-                                          (Expr (IntegerConstant 10)
-                                           [(Op (Symbol "-"), (IntegerConstant 42))])]
+                                         [(Expr
+                                           (Node
+                                            (Leaf (VarName (Identifier "bb")))
+                                            (Op (Symbol "="))
+                                            (Leaf (IntegerConstant 5)))),
+                                           (Expr
+                                            (Node
+                                             (Leaf (IntegerConstant 10))
+                                             (Op (Symbol "-"))
+                                             (Leaf (IntegerConstant 42))))]
                                          (Symbol ")")))
                                   $ parseIt
                                     subCallClassOrVarP "foo.bar(bb = 5, 10-42)")
@@ -136,8 +154,11 @@ tSubroutineCall = TestCase (assertEqual "sub routine name"
                                (SubroutineCall
                                  (SubCallName (Identifier "things")
                                    (Symbol "(")
-                                   [(Expr (IntegerConstant 1)
-                                     [(Op (Symbol "+"), (IntegerConstant 2))])]
+                                   [(Expr
+                                      (Node
+                                        (Leaf (IntegerConstant 1))
+                                        (Op (Symbol "+"))
+                                        (Leaf (IntegerConstant 2))))]
                                    (Symbol ")"))))
                                  $ parseIt subroutineCallP "things(1+2)")
 
@@ -146,8 +167,11 @@ tVarNameArrayAcccess = TestCase (assertEqual "array access using []"
                                   (Right
                                     (VarNameExpr (Identifier "foo")
                                       (Symbol "[")
-                                      (Expr (IntegerConstant 1)
-                                        [(Op (Symbol "+"), (IntegerConstant 2))])
+                                      (Expr
+                                       (Node
+                                        (Leaf (IntegerConstant 1))
+                                        (Op (Symbol "+"))
+                                        (Leaf (IntegerConstant 2))))
                                       (Symbol "]")))
                                   $ parseIt varNameExprP "foo[1 + 2]")
 
@@ -156,10 +180,17 @@ tParensWrappingExpression = TestCase (assertEqual "parens wrapping expression"
                                        (Right
                                          (ParenExpr
                                            (Symbol "(")
-                                           (Expr (IntegerConstant 1)
-                                            [(Op (Symbol "+"), (IntegerConstant 2)),
-                                             (Op (Symbol "+"), (IntegerConstant 3)),
-                                             (Op (Symbol "+"), (IntegerConstant 4))])
+                                           (Expr
+                                            (Node
+                                             (Leaf (IntegerConstant 1))
+                                             (Op (Symbol "+"))
+                                             (Node
+                                              (Leaf (IntegerConstant 2))
+                                              (Op (Symbol "+"))
+                                              (Node
+                                               (Leaf (IntegerConstant 3))
+                                               (Op (Symbol "+"))
+                                               (Leaf (IntegerConstant 4))))))
                                            (Symbol ")")))
                                        $ parseIt parenExprP "(1+2 +   3  + 4)")
 
@@ -168,7 +199,7 @@ tTermArrayAccess = TestCase (assertEqual "term array access: foo[1]"
                               (Right
                                (VarNameExpr (Identifier "foo")
                                  (Symbol "[")
-                                 (Expr (IntegerConstant 1) [])
+                                 (Expr (Leaf (IntegerConstant 1)))
                                  (Symbol "]")))
                               $ parseIt termP "foo[1]")
 
@@ -202,7 +233,7 @@ tLetStatement = TestCase (assertEqual "let statement with simple varname"
                              (Let (Keyword "let")
                                (LetVarName (Identifier "foo"))
                                (Symbol "=")
-                               (Expr (IntegerConstant 5) [])
+                               (Expr (Leaf (IntegerConstant 5)))
                                (Symbol ";")))
                          $ parseIt letP "let foo = 5;")
 
@@ -211,10 +242,10 @@ tLetStatementWExpr = TestCase (assertEqual "let statement with expr varname"
                                   (Let (Keyword "let")
                                     (LetVarNameExpr (Identifier "foo")
                                       (Symbol "[")
-                                      (Expr (IntegerConstant 1) [])
+                                      (Expr (Leaf (IntegerConstant 1)))
                                       (Symbol "]"))
                                     (Symbol "=")
-                                    (Expr (IntegerConstant 5) [])
+                                    (Expr (Leaf (IntegerConstant 5)))
                                     (Symbol ";")))
                          $ parseIt letP "let foo[1] = 5;")
 
@@ -222,15 +253,20 @@ tIfStatementNoElse = TestCase (assertEqual "if statement no else"
                                 (Right
                                   (If (Keyword "if")
                                     (Symbol "(")
-                                    (Expr (IntegerConstant 1)
-                                      [(Op (Symbol "+"), IntegerConstant 2),
-                                       (Op (Symbol "="), IntegerConstant 3)])
+                                    (Expr
+                                     (Node
+                                      (Leaf (IntegerConstant 1))
+                                      (Op (Symbol "+"))
+                                      (Node
+                                       (Leaf (IntegerConstant 2))
+                                       (Op (Symbol "="))
+                                       (Leaf (IntegerConstant 3)))))
                                     (Symbol ")")
                                     (Symbol "{")
                                     [Let (Keyword "let")
                                       (LetVarName (Identifier "foo"))
                                       (Symbol "=")
-                                      (Expr (IntegerConstant 6) [])
+                                      (Expr (Leaf (IntegerConstant 6)))
                                       (Symbol ";")]
                                     (Symbol "}")
                                     Nothing))
@@ -240,15 +276,20 @@ tIfStatementElse = TestCase (assertEqual "if statement with else"
                               (Right
                                 (If (Keyword "if")
                                   (Symbol "(")
-                                  (Expr (IntegerConstant 1)
-                                    [(Op (Symbol "+"), IntegerConstant 2),
-                                     (Op (Symbol "="), IntegerConstant 3)])
+                                  (Expr
+                                     (Node
+                                      (Leaf (IntegerConstant 1))
+                                      (Op (Symbol "+"))
+                                      (Node
+                                       (Leaf (IntegerConstant 2))
+                                       (Op (Symbol "="))
+                                       (Leaf (IntegerConstant 3)))))
                                   (Symbol ")")
                                   (Symbol "{")
                                   [Let (Keyword "let")
                                     (LetVarName (Identifier "foo"))
                                     (Symbol "=")
-                                    (Expr (IntegerConstant 6) [])
+                                    (Expr (Leaf (IntegerConstant 6)))
                                     (Symbol ";")]
                                   (Symbol "}")
                                   (Just
@@ -257,7 +298,7 @@ tIfStatementElse = TestCase (assertEqual "if statement with else"
                                       [Let (Keyword "let")
                                         (LetVarName (Identifier "foo"))
                                         (Symbol "=")
-                                        (Expr (IntegerConstant 2) [])
+                                        (Expr (Leaf (IntegerConstant 2)))
                                         (Symbol ";")]
                                       (Symbol "}")))))
                               $ parseIt ifP
@@ -267,14 +308,17 @@ tWhileStatement = TestCase (assertEqual "while block"
                              (Right
                                (While (Keyword "while")
                                  (Symbol "(")
-                                 (Expr (VarName (Identifier "foo"))
-                                   [(Op (Symbol "="), KeywordConstant "true")])
+                                 (Expr
+                                  (Node
+                                   (Leaf (VarName (Identifier "foo")))
+                                   (Op (Symbol "="))
+                                   (Leaf (KeywordConstant "true"))))
                                  (Symbol ")")
                                  (Symbol "{")
                                  [Let (Keyword "let")
                                    (LetVarName (Identifier "bar"))
                                    (Symbol "=")
-                                   (Expr (IntegerConstant 7) [])
+                                   (Expr (Leaf (IntegerConstant 7)))
                                    (Symbol ";")]
                                  (Symbol "}")))
                              $ parseIt whileP "while (foo = true) {let bar = 7;}")
@@ -296,8 +340,12 @@ tReturnStatementWithExpr = TestCase (assertEqual "return 1 + 2;"
                                       (Right
                                         (Return
                                           (Keyword "return")
-                                          (Just (Expr (IntegerConstant 1)
-                                                  [(Op (Symbol "+"), IntegerConstant 2)]))
+                                          (Just
+                                           (Expr
+                                            (Node
+                                             (Leaf (IntegerConstant 1))
+                                             (Op (Symbol "+"))
+                                             (Leaf (IntegerConstant 2)))))
                                           (Symbol ";")))
                                       $ parseIt returnP "return 1 +     2;")
 
@@ -344,12 +392,12 @@ tSubroutineBody = TestCase (assertEqual "a simple subroutine body"
                                  [Let (Keyword "let")
                                    (LetVarName (Identifier "foo"))
                                    (Symbol "=")
-                                   (Expr (IntegerConstant 5) [])
+                                   (Expr (Leaf (IntegerConstant 5)))
                                    (Symbol ";"),
                                   Let (Keyword "let")
                                    (LetVarName (Identifier "bar"))
                                    (Symbol "=")
-                                   (Expr (KeywordConstant "true") [])
+                                   (Expr (Leaf (KeywordConstant "true")))
                                    (Symbol ";")]
                                  (Symbol "}")))
                              $ parseIt subroutineBodyP
@@ -411,8 +459,11 @@ tSubroutineDec = TestCase (assertEqual "subroutine declaration"
                                   [Let (Keyword "let")
                                     (LetVarName (Identifier "baz"))
                                     (Symbol "=")
-                                    (Expr (VarName (Identifier "arg1"))
-                                      [(Op (Symbol "+"), IntegerConstant 5)])
+                                    (Expr
+                                     (Node
+                                      (Leaf (VarName (Identifier "arg1")))
+                                      (Op (Symbol "+"))
+                                      (Leaf (IntegerConstant 5))))
                                     (Symbol ";"),
                                     Return (Keyword "return")
                                     Nothing (Symbol ";")]
@@ -464,7 +515,7 @@ tClassWithBasicElems = TestCase (assertEqual "a basic class"
                                         [Return (Keyword "return")
                                           (Just
                                             (Expr
-                                              (VarName (Identifier "foo")) []))
+                                             (Leaf (VarName (Identifier "foo")))))
                                           (Symbol ";")]
                                         (Symbol "}"))]
                                     (Symbol "}")))
