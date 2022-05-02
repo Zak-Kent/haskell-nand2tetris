@@ -4,11 +4,34 @@ module AST where
 data Keyword = Keyword String deriving (Show, Eq)
 data Symbol = Symbol String deriving (Show, Eq)
 data Identifier = Identifier String deriving (Show, Eq)
-data Op = Op Symbol deriving (Show, Eq)
 type VarName = Identifier
 
+data Tree a = Leaf a
+  | Node (Tree a) a (Tree a)
+  deriving (Show, Eq)
+
+mapTree :: (a -> b) -> Tree a -> Tree b
+mapTree f (Leaf a) = (Leaf (f a))
+mapTree f (Node lb op rb) = (Node (mapTree f lb) (f op) (mapTree f rb))
+
+instance Functor Tree where
+  fmap = mapTree
+
+instance Foldable Tree where
+  foldr f z (Leaf a) = f a z
+  foldr f z (Node lb op rb) = (foldr f (foldr f (f op z) lb) rb)
+
 -- expression: term (op term)*
-data Expr = Expr Term [(Op, Term)] deriving (Show, Eq)
+-- expr tree ex: 5 + 6 + 7
+{-
+      +
+     / \
+    5   +
+       / \
+      6   7
+-}
+data Expr = Expr (Tree Term)
+  deriving (Show, Eq)
 
 -- subroutineCall: subroutineName '(' expressionList ')' |
 --               (className | varName) '.' subroutineName '(' expressionList ')'
@@ -24,6 +47,7 @@ data Term = IntegerConstant Int
   | VarNameExpr VarName Symbol Expr Symbol
   | ParenExpr Symbol Expr Symbol
   | SubroutineCall SubCall
+  | Op Symbol
   deriving (Show, Eq)
 
 data LetVarName = LetVarName VarName

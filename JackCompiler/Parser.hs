@@ -58,7 +58,7 @@ keywordP kw = do
   pkw <- wrapEscapes $ Ps.string kw
   return (Keyword pkw)
 
-opP :: Ps.Parsec String () Op
+opP :: Ps.Parsec String () Term
 opP = do
   op <- symsP ["+", "-", "*", "/", "&", "|", "<", ">", "="]
   return (Op op)
@@ -73,7 +73,12 @@ identifierP = do
   return (Identifier $ [x] ++ xs)
 
 -- Expr parsers
-opTermP :: Ps.Parsec String () (Op, Term)
+buildExprTree :: Term -> [(Term, Term)] -> (Tree Term)
+buildExprTree t [] = (Leaf t)
+buildExprTree t (x:xs) = (Node (Leaf t) (fst x)
+                           (buildExprTree (snd x) xs))
+
+opTermP :: Ps.Parsec String () (Term, Term)
 opTermP = do
   op <- wrapEscapes opP
   t <- wrapEscapes termP
@@ -83,7 +88,7 @@ exprP :: Ps.Parsec String () Expr
 exprP = do
   t <- wrapEscapes termP
   opTerms <- wrapEscapes $ Ps.many opTermP
-  return (Expr t opTerms)
+  return (Expr (buildExprTree t opTerms))
 
 -- SubCall parsers
 subCallNameP :: Ps.Parsec String () SubCall
