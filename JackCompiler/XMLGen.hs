@@ -27,12 +27,12 @@ xKeyword (Keyword k) = xTag "keyword" k
 xIdentifier :: Identifier -> String
 xIdentifier (Identifier i) = xTag "identifier" i
 
-xOpTerms :: (Op, Term) -> String
-xOpTerms ((Op o), t) = xSymbol o ++ xTerm t
-
 xExpr :: Expr -> String
-xExpr (Expr t opTerms) = xTagMultiLine "expression"
-  (concat $ [xTerm t] ++ (map xOpTerms opTerms))
+xExpr (Expr exprTree) = xTagMultiLine "expression"
+  $ treeToStr
+  $ fmap xTerm exprTree
+  where treeToStr (Leaf v) = v
+        treeToStr (Node lb op rb) = (treeToStr lb) ++ op ++ (treeToStr rb)
 
 xExprs :: [Expr] -> String
 xExprs exprs = xTagMultiLine "expressionList"
@@ -72,6 +72,7 @@ xTerm (VarNameExpr vName lb expr rb) =
   ++ xSymbol rb
 xTerm (ParenExpr lp expr rp) = xWrapT $ xSymbol lp ++ xExpr expr ++ xSymbol rp
 xTerm (SubroutineCall subCall) = xWrapT $ xSubCall subCall
+xTerm (Op s) = xSymbol s
 
 xStatements :: [Statement] -> String
 xStatements stmts = xTagMultiLine "statements" $ concat $ map xStatement stmts
