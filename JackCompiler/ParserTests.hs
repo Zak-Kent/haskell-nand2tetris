@@ -199,27 +199,22 @@ tTermVarName = TestCase (assertEqual "varname blarg"
 -- statementP tests
 tLetStatement = TestCase (assertEqual "let statement with simple varname"
                            (Right
-                             (Let (Keyword "let")
+                             (Let
                                (LetVarName (Identifier "foo"))
-                               (Symbol "=")
-                               (Expr (Leaf (IntegerConstant 5)))
-                               (Symbol ";")))
+                               (Expr (Leaf (IntegerConstant 5)))))
                          $ parseIt letP "let foo = 5;")
 
 tLetStatementWExpr = TestCase (assertEqual "let statement with expr varname"
                                 (Right
-                                  (Let (Keyword "let")
+                                  (Let
                                     (LetVarNameExpr (Identifier "foo")
                                       (Expr (Leaf (IntegerConstant 1))))
-                                    (Symbol "=")
-                                    (Expr (Leaf (IntegerConstant 5)))
-                                    (Symbol ";")))
+                                    (Expr (Leaf (IntegerConstant 5)))))
                          $ parseIt letP "let foo[1] = 5;")
 
 tIfStatementNoElse = TestCase (assertEqual "if statement no else"
                                 (Right
-                                  (If (Keyword "if")
-                                    (Symbol "(")
+                                  (If
                                     (Expr
                                      (Node
                                       (Leaf (IntegerConstant 1))
@@ -228,21 +223,15 @@ tIfStatementNoElse = TestCase (assertEqual "if statement no else"
                                        (Leaf (IntegerConstant 2))
                                        (Op (Symbol "="))
                                        (Leaf (IntegerConstant 3)))))
-                                    (Symbol ")")
-                                    (Symbol "{")
-                                    [Let (Keyword "let")
+                                    [Let
                                       (LetVarName (Identifier "foo"))
-                                      (Symbol "=")
-                                      (Expr (Leaf (IntegerConstant 6)))
-                                      (Symbol ";")]
-                                    (Symbol "}")
+                                      (Expr (Leaf (IntegerConstant 6)))]
                                     Nothing))
                                 $ parseIt ifP "if (1 + 2 = 3) {let foo = 6;}")
 
 tIfStatementElse = TestCase (assertEqual "if statement with else"
                               (Right
-                                (If (Keyword "if")
-                                  (Symbol "(")
+                                (If
                                   (Expr
                                      (Node
                                       (Leaf (IntegerConstant 1))
@@ -251,73 +240,51 @@ tIfStatementElse = TestCase (assertEqual "if statement with else"
                                        (Leaf (IntegerConstant 2))
                                        (Op (Symbol "="))
                                        (Leaf (IntegerConstant 3)))))
-                                  (Symbol ")")
-                                  (Symbol "{")
-                                  [Let (Keyword "let")
+                                  [Let
                                     (LetVarName (Identifier "foo"))
-                                    (Symbol "=")
-                                    (Expr (Leaf (IntegerConstant 6)))
-                                    (Symbol ";")]
-                                  (Symbol "}")
+                                    (Expr (Leaf (IntegerConstant 6)))]
                                   (Just
-                                    (Else (Keyword "else")
-                                      (Symbol "{")
-                                      [Let (Keyword "let")
+                                    (Else
+                                      [Let
                                         (LetVarName (Identifier "foo"))
-                                        (Symbol "=")
-                                        (Expr (Leaf (IntegerConstant 2)))
-                                        (Symbol ";")]
-                                      (Symbol "}")))))
+                                        (Expr (Leaf (IntegerConstant 2)))]))))
                               $ parseIt ifP
                               "if ( 1 + 2 = 3) {let foo = 6;} else {let foo = 2;}")
 
 tWhileStatement = TestCase (assertEqual "while block"
                              (Right
-                               (While (Keyword "while")
-                                 (Symbol "(")
+                               (While
                                  (Expr
                                   (Node
                                    (Leaf (VarName (Identifier "foo")))
                                    (Op (Symbol "="))
                                    (Leaf (KeywordConstant "true"))))
-                                 (Symbol ")")
-                                 (Symbol "{")
-                                 [Let (Keyword "let")
+                                 [Let
                                    (LetVarName (Identifier "bar"))
-                                   (Symbol "=")
-                                   (Expr (Leaf (IntegerConstant 7)))
-                                   (Symbol ";")]
-                                 (Symbol "}")))
+                                   (Expr (Leaf (IntegerConstant 7)))]))
                              $ parseIt whileP "while (foo = true) {let bar = 7;}")
 
 tDoSubCallStatement = TestCase (assertEqual "do what.huh()"
                                  (Right
                                    (Do
-                                     (Keyword "do")
                                      (SubCallClassOrVar (Identifier "what")
-                                      (Identifier "huh") [])
-                                     (Symbol ";")))
+                                      (Identifier "huh") [])))
                                  $ parseIt doP "do what.huh() ;")
 
 tReturnStatementWithExpr = TestCase (assertEqual "return 1 + 2;"
                                       (Right
                                         (Return
-                                          (Keyword "return")
                                           (Just
                                            (Expr
                                             (Node
                                              (Leaf (IntegerConstant 1))
                                              (Op (Symbol "+"))
-                                             (Leaf (IntegerConstant 2)))))
-                                          (Symbol ";")))
+                                             (Leaf (IntegerConstant 2)))))))
                                       $ parseIt returnP "return 1 +     2;")
 
 tReturnNoExpr = TestCase (assertEqual "return;"
                            (Right
-                             (Return
-                               (Keyword "return")
-                               Nothing
-                               (Symbol ";")))
+                             (Return Nothing))
                          $ parseIt returnP "return;")
 
 -- Program structure tests
@@ -352,16 +319,12 @@ tSubroutineBody = TestCase (assertEqual "a simple subroutine body"
                                    (TKeyword (Keyword "boolean"))
                                    (Identifier "bar")
                                    [] (Symbol ";")]
-                                 [Let (Keyword "let")
+                                 [Let
                                    (LetVarName (Identifier "foo"))
-                                   (Symbol "=")
-                                   (Expr (Leaf (IntegerConstant 5)))
-                                   (Symbol ";"),
-                                  Let (Keyword "let")
+                                   (Expr (Leaf (IntegerConstant 5))) ,
+                                  Let
                                    (LetVarName (Identifier "bar"))
-                                   (Symbol "=")
-                                   (Expr (Leaf (KeywordConstant "true")))
-                                   (Symbol ";")]
+                                   (Expr (Leaf (KeywordConstant "true")))]
                                  (Symbol "}")))
                              $ parseIt subroutineBodyP
                              "{var int foo; var boolean bar; let foo = 5; let bar = true;}")
@@ -371,10 +334,8 @@ tSubroutineBodyNoVars = TestCase (assertEqual "subroutine body with no vars"
                                     (SubroutineBody (Symbol "{")
                                       []
                                       [(Do
-                                         (Keyword "do")
                                          (SubCallClassOrVar (Identifier "what")
-                                           (Identifier "huh") [])
-                                       (Symbol ";"))]
+                                           (Identifier "huh") []))]
                                      (Symbol "}")))
                                  $ parseIt subroutineBodyP
                                  "{   do what.huh(); }")
@@ -415,17 +376,14 @@ tSubroutineDec = TestCase (assertEqual "subroutine declaration"
                                     (Identifier "baz")
                                     []
                                     (Symbol ";")]
-                                  [Let (Keyword "let")
+                                  [Let
                                     (LetVarName (Identifier "baz"))
-                                    (Symbol "=")
                                     (Expr
                                      (Node
                                       (Leaf (VarName (Identifier "arg1")))
                                       (Op (Symbol "+"))
-                                      (Leaf (IntegerConstant 5))))
-                                    (Symbol ";"),
-                                    Return (Keyword "return")
-                                    Nothing (Symbol ";")]
+                                      (Leaf (IntegerConstant 5)))) ,
+                                    Return Nothing]
                                   (Symbol "}"))))
                           $ parseIt subroutineDecP
                           "method void foo (int arg1, boolean arg2) \
@@ -471,11 +429,10 @@ tClassWithBasicElems = TestCase (assertEqual "a basic class"
                                       (SubroutineBody
                                         (Symbol "{")
                                         []
-                                        [Return (Keyword "return")
+                                        [Return
                                           (Just
                                             (Expr
-                                             (Leaf (VarName (Identifier "foo")))))
-                                          (Symbol ";")]
+                                             (Leaf (VarName (Identifier "foo")))))]
                                         (Symbol "}"))]
                                     (Symbol "}")))
                            $ parseIt classP "class foo { static int foo, bar; \

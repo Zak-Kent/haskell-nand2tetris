@@ -93,43 +93,47 @@ instance XML LetVarName where
     genXTags [WrapX vn, WrapX (Symbol "["), WrapX expr, WrapX (Symbol "]")]
 
 instance XML Else where
-  genXML (Else kw lc stmts rc) =
-    genXTags [WrapX kw, WrapX lc, WrapX stmts, WrapX rc]
+  genXML (Else stmts) =
+    genXTags [WrapX (Keyword "else"), WrapX (Symbol "{"),
+              WrapX stmts, WrapX (Symbol "}")]
 
 instance XML [Statement] where
   genXML stmts = xTagMultiLine "statements" $ concatMap genXML stmts
 
 instance XML Statement where
-  genXML (Let kw vn eq expr sc) =
+  genXML (Let vn expr) =
     xTagMultiLine "letStatement" $
-    genXTags [WrapX kw, WrapX vn, WrapX eq, WrapX expr, WrapX sc]
+    genXTags [WrapX (Keyword "let"), WrapX vn, WrapX (Symbol "="),
+              WrapX expr, WrapX (Symbol ";")]
 
-  genXML (If kw lp expr rp lc stmts rc maybeStmts) =
+  genXML (If expr stmts maybeStmts) =
     let mStmts = case maybeStmts of
           Just e -> genXML e
           Nothing -> ""
     in xTagMultiLine "ifStatement" $
-    genXTags [WrapX kw, WrapX lp, WrapX expr, WrapX rp, WrapX lc,
-              WrapX stmts, WrapX rc]
+    genXTags [WrapX (Keyword "if"), WrapX (Symbol "("), WrapX expr,
+              WrapX (Symbol ")"), WrapX (Symbol "{"), WrapX stmts,
+              WrapX (Symbol "}")]
     ++ mStmts
 
-  genXML (While kw lp expr rp lc stmts rc) =
+  genXML (While expr stmts) =
     xTagMultiLine "whileStatement" $
-    genXTags [WrapX kw, WrapX lp, WrapX expr, WrapX rp, WrapX lc,
-              WrapX stmts, WrapX rc]
+    genXTags [WrapX (Keyword "while"), WrapX (Symbol "("), WrapX expr,
+              WrapX (Symbol ")"), WrapX (Symbol "{"), WrapX stmts,
+              WrapX (Symbol "}")]
 
-  genXML (Do kw subCall sc) =
+  genXML (Do subCall) =
     xTagMultiLine "doStatement" $
-    genXTags [WrapX kw, WrapX subCall, WrapX sc]
+    genXTags [WrapX (Keyword "do"), WrapX subCall, WrapX (Symbol ";")]
 
-  genXML (Return kw maybeExpr sc) =
+  genXML (Return maybeExpr) =
     let mExpr = case maybeExpr of
           (Just expr) -> genXML expr
           Nothing -> ""
     in xTagMultiLine "returnStatement" $
-    genXML kw
+    genXML (Keyword "return")
     ++ mExpr
-    ++ genXML sc
+    ++ genXML (Symbol ";")
 
 instance XML Type where
   genXML (TKeyword kw) = genXML kw

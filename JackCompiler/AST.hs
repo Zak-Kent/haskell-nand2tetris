@@ -54,19 +54,19 @@ data LetVarName = LetVarName VarName
   | LetVarNameExpr VarName Expr
   deriving (Show, Eq)
 
-data Else = Else Keyword Symbol Statements Symbol deriving (Show, Eq)
+data Else = Else Statements deriving (Show, Eq)
 
 type Statements = [Statement]
 data Statement =
   -- 'let' varName ('[' expr ']')? '=' expr ';'
-  Let Keyword LetVarName Symbol Expr Symbol
+  Let LetVarName Expr
   -- 'if' '(' expr ')' '{' statements '}' ('else' '{' statements '}')?
-  | If Keyword Symbol Expr Symbol Symbol Statements Symbol (Maybe Else)
+  | If Expr Statements (Maybe Else)
   -- 'while' '(' expr ')' '{' statements '}'
-  | While Keyword Symbol Expr Symbol Symbol Statements Symbol
-  | Do Keyword SubCall Symbol
+  | While Expr Statements
+  | Do SubCall
   -- 'return' (expr)? ';'
-  | Return Keyword (Maybe Expr) Symbol
+  | Return (Maybe Expr)
   deriving (Show, Eq)
 
 data Type = TKeyword Keyword
