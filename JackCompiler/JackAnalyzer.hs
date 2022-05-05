@@ -39,7 +39,7 @@ convertXML src = do
   contents <- readFile src
   p <- parseFile contents
   case p of
-    (Right c) -> writeXML src $ xClass c
+    (Right c) -> writeXML src $ genXML c
     (Left e) -> print e
 
 main :: IO [()]
