@@ -1,9 +1,26 @@
+{-# LANGUAGE ExistentialQuantification, FlexibleInstances #-}
 module XMLGen where
 
 import Text.Printf
 import Data.List
 
 import AST
+
+{-
+ wrapper type using existential type to allow heterogenous lists.
+ It's a trick to hide the type param from the left side of the
+ data declartion so you can have a list of [WrapX] even though
+ the types contained within each WrapX are different. Each type
+ inside a WrapX must be an instance of XML and implement genXML.
+-}
+data WrapX = forall a . (XML a) => WrapX a
+
+instance XML WrapX where
+  genXML (WrapX a) = genXML a
+
+genXTags :: [WrapX] -> String
+genXTags [] =""
+genXTags ((WrapX x):xs) = genXML x ++ genXTags xs
 
 xEscape :: String -> String
 xEscape "<"  = "&lt;"
@@ -18,193 +35,148 @@ xTag name val = printf "<%s> %s </%s>\n" name (xEscape val) name
 xTagMultiLine :: String -> String -> String
 xTagMultiLine name val = printf "<%s>\n %s </%s>\n" name val name
 
-xSymbol :: Symbol -> String
-xSymbol (Symbol s) = xTag "symbol" s
+class XML a where
+  genXML :: a -> String
 
-xKeyword :: Keyword -> String
-xKeyword (Keyword k) = xTag "keyword" k
+instance XML Symbol where
+  genXML (Symbol s) = xTag "symbol" s
 
-xIdentifier :: Identifier -> String
-xIdentifier (Identifier i) = xTag "identifier" i
+instance XML Keyword where
+  genXML (Keyword k) = xTag "keyword" k
 
-xExpr :: Expr -> String
-xExpr (Expr exprTree) = xTagMultiLine "expression"
-  $ treeToStr
-  $ fmap xTerm exprTree
-  where treeToStr (Leaf v) = v
-        treeToStr (Node lb op rb) = (treeToStr lb) ++ op ++ (treeToStr rb)
+instance XML Identifier where
+  genXML (Identifier i) = xTag "identifier" i
 
-xExprs :: [Expr] -> String
-xExprs exprs = xTagMultiLine "expressionList"
-               $ intercalate (xSymbol (Symbol ",")) $ map xExpr exprs
+instance XML Expr where
+  genXML (Expr exprTree) = xTagMultiLine "expression"
+    $ treeToStr
+    $ fmap genXML exprTree
+    where treeToStr (Leaf v) = v
+          treeToStr (Node lb op rb) = (treeToStr lb) ++ op ++ (treeToStr rb)
 
-xSubCall :: SubCall -> String
-xSubCall (SubCallName sName lp exprs rp) =
-  xIdentifier sName
-  ++ xSymbol lp
-  ++ xExprs exprs
-  ++ xSymbol rp
-xSubCall (SubCallClassOrVar cOrVName dot sName lp exprs rp) =
-  xIdentifier cOrVName
-  ++ xSymbol dot
-  ++ xIdentifier sName
-  ++ xSymbol lp
-  ++ xExprs exprs
-  ++ xSymbol rp
+instance XML [Expr] where
+  genXML exprs = xTagMultiLine "expressionList"
+                 $ intercalate (genXML (Symbol ",")) $ map genXML exprs
 
-xWrapT :: String -> String
-xWrapT t = printf "<term>\n %s </term>\n" t
+instance XML SubCall where
+  genXML (SubCallName sName lp exprs rp) =
+    genXTags [WrapX sName, WrapX lp, WrapX exprs, WrapX rp]
+  genXML (SubCallClassOrVar cOrV d sName lp exprs rp) =
+    genXTags [WrapX cOrV, WrapX d, WrapX sName, WrapX lp,
+              WrapX exprs, WrapX rp]
 
-xTerm :: Term -> String
-xTerm (IntegerConstant i) = xWrapT $ xTag "integerConstant" $ show i
-xTerm (StringConstant s) = xWrapT $ xTag "stringConstant" s
--- the grader expects "keyword" even though the grammar has "keywordConstant"
--- as the type
-xTerm (KeywordConstant k) = xWrapT $ xTag "keyword" k
--- TODO: might not need to wrap xIdentifier in term tag
-xTerm (VarName i) = xWrapT $ xIdentifier i -- VarName becomes an identifier tag
-xTerm (UnaryOp s t) = xWrapT $ xSymbol s ++ xTerm t
-xTerm (VarNameExpr vName lb expr rb) =
-  xWrapT $
-  xIdentifier vName
-  ++ xSymbol lb
-  ++ xExpr expr
-  ++ xSymbol rb
-xTerm (ParenExpr lp expr rp) = xWrapT $ xSymbol lp ++ xExpr expr ++ xSymbol rp
-xTerm (SubroutineCall subCall) = xWrapT $ xSubCall subCall
-xTerm (Op s) = xSymbol s
+termTag :: String -> String
+termTag t = printf "<term>\n %s </term>\n" t
 
-xStatements :: [Statement] -> String
-xStatements stmts = xTagMultiLine "statements" $ concat $ map xStatement stmts
+instance XML Term where
+  genXML (IntegerConstant i) = termTag $ xTag "integerConstant" $ show i
+  genXML (StringConstant s) = termTag $ xTag "stringConstant" s
+  -- the grader expects "keyword" even though the grammar has "keywordConstant"
+  -- as the type
+  genXML (KeywordConstant k) = termTag $ xTag "keyword" k
+  genXML (VarName i) = termTag $ genXML i -- VarName becomes an identifier tag
+  genXML  (UnaryOp s t) = termTag $ genXML s ++ genXML t
+  genXML (VarNameExpr vName lb expr rb) =
+    termTag $ genXTags [WrapX vName, WrapX lb, WrapX expr, WrapX rb]
+  genXML (ParenExpr lp expr rp) = termTag
+    $ genXTags [WrapX lp, WrapX expr, WrapX rp]
+  genXML (SubroutineCall subCall) = termTag $ genXML subCall
+  genXML (Op s) = genXML s
 
-xStatement :: Statement -> String
-xStatement (Let kw varName eq expr sc) =
-  let varN = case varName of
-        LetVarName vn ->
-          xIdentifier vn
-        LetVarNameExpr vn lb expr' rb ->
-          xIdentifier vn
-          ++ xSymbol lb
-          ++ xExpr expr'
-          ++ xSymbol rb
-  in xTagMultiLine "letStatement" $
-  xKeyword kw
-  ++ varN
-  ++ xSymbol eq
-  ++ xExpr expr
-  ++ xSymbol sc
+instance XML LetVarName where
+  genXML (LetVarName vn) = genXML vn
+  genXML (LetVarNameExpr vn lb expr rb) =
+    genXTags [WrapX vn, WrapX lb, WrapX expr, WrapX rb]
 
-xStatement (If kw lp expr rp lc stmts rc maybeStmts) =
-  let mStmts = case maybeStmts of
-        Just (Else kw' lc' stmts' rc') ->
-          xKeyword kw'
-          ++ xSymbol lc'
-          ++ xStatements stmts'
-          ++ xSymbol rc'
-        Nothing -> ""
-  in xTagMultiLine "ifStatement" $
-  xKeyword kw
-  ++ xSymbol lp
-  ++ xExpr expr
-  ++ xSymbol rp
-  ++ xSymbol lc
-  ++ xStatements stmts
-  ++ xSymbol rc
-  ++ mStmts
+instance XML Else where
+  genXML (Else kw lc stmts rc) =
+    genXTags [WrapX kw, WrapX lc, WrapX stmts, WrapX rc]
 
-xStatement (While kw lp expr rp lc stmts rc) =
-  xTagMultiLine "whileStatement" $
-  xKeyword kw
-  ++ xSymbol lp
-  ++ xExpr expr
-  ++ xSymbol rp
-  ++ xSymbol lc
-  ++ xStatements stmts
-  ++ xSymbol rc
+instance XML [Statement] where
+  genXML stmts = xTagMultiLine "statements" $ concatMap genXML stmts
 
-xStatement (Do kw subCall sc) =
-  let sCall = case subCall of
-        (SubCallName scn lp exprs rp) ->
-          xIdentifier scn
-          ++ xSymbol lp
-          ++ xExprs exprs
-          ++ xSymbol rp
-        (SubCallClassOrVar cvn dot sn lp exprs rp) ->
-          xIdentifier cvn
-          ++ xSymbol dot
-          ++ xIdentifier sn
-          ++ xSymbol lp
-          ++ xExprs exprs
-          ++ xSymbol rp
-  in xTagMultiLine "doStatement" $
-  xKeyword kw
-  ++ sCall
-  ++ xSymbol sc
+instance XML Statement where
+  genXML (Let kw vn eq expr sc) =
+    xTagMultiLine "letStatement" $
+    genXTags [WrapX kw, WrapX vn, WrapX eq, WrapX expr, WrapX sc]
 
-xStatement (Return kw maybeExpr sc) =
-  let mExpr = case maybeExpr of
-        (Just expr) -> xExpr expr
-        Nothing -> ""
-  in xTagMultiLine "returnStatement" $
-  xKeyword kw
-  ++ mExpr
-  ++ xSymbol sc
+  genXML (If kw lp expr rp lc stmts rc maybeStmts) =
+    let mStmts = case maybeStmts of
+          Just e -> genXML e
+          Nothing -> ""
+    in xTagMultiLine "ifStatement" $
+    genXTags [WrapX kw, WrapX lp, WrapX expr, WrapX rp, WrapX lc,
+              WrapX stmts, WrapX rc]
+    ++ mStmts
 
-xType :: Type -> String
-xType (TKeyword kw) = xKeyword kw
-xType (TIdentifier i) = xIdentifier i
+  genXML (While kw lp expr rp lc stmts rc) =
+    xTagMultiLine "whileStatement" $
+    genXTags [WrapX kw, WrapX lp, WrapX expr, WrapX rp, WrapX lc,
+              WrapX stmts, WrapX rc]
 
-xVarDec :: VarDec -> String
-xVarDec (VarDec varKw typ vn vns sc) =
-  let varNames = intercalate (xSymbol (Symbol ",")) $
-                 map xIdentifier $ [vn] ++ vns
-  in xTagMultiLine "varDec" $
-     xKeyword varKw
-     ++ xType typ
-     ++ varNames
-     ++ xSymbol sc
+  genXML (Do kw subCall sc) =
+    xTagMultiLine "doStatement" $
+    genXTags [WrapX kw, WrapX subCall, WrapX sc]
 
-xSubroutineBody :: SubroutineBody -> String
-xSubroutineBody (SubroutineBody lc varDecs stmts rc) =
-  xTagMultiLine "subroutineBody" $
-  xSymbol lc
-  ++ (concat $ map xVarDec varDecs)
-  ++ xStatements stmts
-  ++ xSymbol rc
+  genXML (Return kw maybeExpr sc) =
+    let mExpr = case maybeExpr of
+          (Just expr) -> genXML expr
+          Nothing -> ""
+    in xTagMultiLine "returnStatement" $
+    genXML kw
+    ++ mExpr
+    ++ genXML sc
 
-xParameterList :: ParameterList -> String
-xParameterList (ParameterList params) =
-  xTagMultiLine "parameterList" $
-  intercalate (xSymbol (Symbol ",")) $ map xParams params
-  where xParams (t, vn) = xType t ++ xIdentifier vn
+instance XML Type where
+  genXML (TKeyword kw) = genXML kw
+  genXML (TIdentifier i) = genXML i
 
-xSubroutineDec :: SubroutineDec -> String
-xSubroutineDec (SubroutineDec kw typ sn lp pList rp sb) =
-  xTagMultiLine "subroutineDec" $
-  xKeyword kw
-  ++ xType typ
-  ++ xIdentifier sn
-  ++ xSymbol lp
-  ++ xParameterList pList -- this produces an empty tag if no params, could be a bug
-  ++ xSymbol rp
-  ++ xSubroutineBody sb
+instance XML VarDec where
+  genXML (VarDec varKw typ vn vns sc) =
+    let varNames = intercalate (genXML (Symbol ",")) $
+                   map genXML $ [vn] ++ vns
+    in xTagMultiLine "varDec" $
+       genXTags [WrapX varKw, WrapX typ]
+       ++ varNames
+       ++ genXML sc
 
-xClassVarDec :: ClassVarDec -> String
-xClassVarDec (ClassVarDec kw typ vn vns sc) =
-  let varNames = intercalate (xSymbol (Symbol ",")) $
-                 map xIdentifier $ [vn] ++ vns
-  in xTagMultiLine "classVarDec" $
-  xKeyword kw
-  ++ xType typ
-  ++ varNames
-  ++ xSymbol sc
+instance XML [VarDec] where
+  genXML varDecs = concatMap genXML varDecs
 
-xClass :: Class -> String
-xClass (Class kw cn lc clsVars subDecs rc) =
-  xTagMultiLine "class" $
-  xKeyword kw
-  ++ xIdentifier cn
-  ++ xSymbol lc
-  ++ (concat $ map xClassVarDec clsVars)
-  ++ (concat $ map xSubroutineDec subDecs)
-  ++ xSymbol rc
+instance XML SubroutineBody where
+  genXML (SubroutineBody lc varDecs stmts rc) =
+    xTagMultiLine "subroutineBody" $
+    genXTags [WrapX lc, WrapX varDecs, WrapX stmts, WrapX rc]
+
+instance XML ParameterList where
+  genXML (ParameterList params) =
+    xTagMultiLine "parameterList" $
+    intercalate (genXML (Symbol ",")) $ map genParamsXML params
+    where genParamsXML (t, vn) = genXTags [WrapX t, WrapX vn]
+
+instance XML SubroutineDec where
+  genXML (SubroutineDec kw typ sn lp pList rp sb) =
+    xTagMultiLine "subroutineDec" $
+    genXTags [WrapX kw, WrapX typ, WrapX sn, WrapX lp, WrapX pList,
+              WrapX rp, WrapX sb]
+
+instance XML [SubroutineDec] where
+  genXML subDecs = concatMap genXML subDecs
+
+instance XML ClassVarDec where
+  genXML (ClassVarDec kw typ vn vns sc) =
+    let varNames = intercalate (genXML (Symbol ",")) $
+                   map genXML $ [vn] ++ vns
+    in xTagMultiLine "classVarDec" $
+    genXTags [WrapX kw, WrapX typ]
+    ++ varNames
+    ++ genXML sc
+
+instance XML [ClassVarDec] where
+  genXML cvDecs = concatMap genXML cvDecs
+
+instance XML Class where
+  genXML (Class kw cn lc clsVars subDecs rc) =
+    xTagMultiLine "class" $
+    genXTags [WrapX kw, WrapX cn, WrapX lc, WrapX clsVars,
+              WrapX subDecs, WrapX rc]
