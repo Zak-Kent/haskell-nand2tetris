@@ -251,7 +251,7 @@ typeOrKwP kws = do
 
 varDecP :: Ps.Parsec String () VarDec
 varDecP = do
-  var <- keywordP "var"
+  _ <- keywordP "var"
   typ <- (typeOrKwP ["int", "char", "boolean"])
   varN <- identifierP
   Ps.spaces
@@ -259,16 +259,16 @@ varDecP = do
   -- varNList is dropping all the ',' symbols, you'll need to account for
   -- this in the xml generation
   varNList <- wrapEscapes $ Ps.sepBy identifierP $ Ps.string ","
-  sc <- symP ";"
-  return (VarDec var typ varN varNList sc)
+  _ <- symP ";"
+  return (VarDec typ varN varNList)
 
 subroutineBodyP :: Ps.Parsec String () SubroutineBody
 subroutineBodyP = do
-  lc <- symP "{"
+  _ <- symP "{"
   varDecs <- Ps.many varDecP
   statments <- Ps.many statementP
-  rc <- symP "}"
-  return (SubroutineBody lc varDecs statments rc)
+  _ <- symP "}"
+  return (SubroutineBody varDecs statments)
 
 paramListP :: Ps.Parsec String () ParameterList
 paramListP = do
@@ -285,11 +285,11 @@ subroutineDecP = do
   kw <- keywordsP ["constructor", "function", "method"]
   retType <- typeOrKwP ["void"]
   subN <- identifierP
-  lb <- symP "("
+  _ <- symP "("
   params <- paramListP
-  rb <- symP ")"
+  _ <- symP ")"
   subBody <- subroutineBodyP
-  return (SubroutineDec kw retType subN lb params rb subBody)
+  return (SubroutineDec kw retType subN params subBody)
 
 classVarDecP :: Ps.Parsec String () ClassVarDec
 classVarDecP = do
@@ -301,18 +301,18 @@ classVarDecP = do
   -- varNList is dropping all the ',' symbols, you'll need to account for
   -- this in the xml generation
   varNList <- wrapEscapes $ Ps.sepBy identifierP $ Ps.string ","
-  sc <- symP ";"
-  return (ClassVarDec kw typ varN varNList sc)
+  _ <- symP ";"
+  return (ClassVarDec kw typ varN varNList)
 
 classP :: Ps.Parsec String () Class
 classP = do
   cls <- keywordsP ["class"]
   clsName <- identifierP
-  lc <- symP "{"
+  _ <- symP "{"
   clsVarDecs <- Ps.many classVarDecP
   subRDecs <- Ps.many subroutineDecP
-  rc <- symP "}"
-  return (Class cls clsName lc clsVarDecs subRDecs rc)
+  _ <- symP "}"
+  return (Class cls clsName clsVarDecs subRDecs)
 
 parseJack :: String -> Either Ps.ParseError Class
 parseJack f = Ps.parse classP f f

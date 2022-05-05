@@ -290,53 +290,45 @@ tReturnNoExpr = TestCase (assertEqual "return;"
 -- Program structure tests
 tVarDecOneVar = TestCase (assertEqual "var int foo;"
                            (Right
-                             (VarDec (Keyword "var")
+                             (VarDec
                                (TKeyword (Keyword "int"))
-                               (Identifier "foo")
-                               []
-                               (Symbol ";")))
+                               (Identifier "foo") []))
                            $ parseIt varDecP "var int foo;")
 
 tVarDecManyVars = TestCase (assertEqual "var boolean foo, bar, baz;"
                              (Right
-                               (VarDec (Keyword "var")
+                               (VarDec
                                (TKeyword (Keyword "boolean"))
                                (Identifier "foo")
                                [(Identifier "bar"),
-                                (Identifier "baz")]
-                               (Symbol ";")))
+                                (Identifier "baz")]))
                            $ parseIt varDecP "var boolean foo   , bar, baz;")
 
 tSubroutineBody = TestCase (assertEqual "a simple subroutine body"
                              (Right
-                               (SubroutineBody (Symbol "{")
-                                 [VarDec (Keyword "var")
+                               (SubroutineBody
+                                 [VarDec
                                    (TKeyword (Keyword "int"))
-                                   (Identifier "foo")
-                                   []
-                                   (Symbol ";"),
-                                   VarDec (Keyword "var")
+                                   (Identifier "foo") [] ,
+                                  VarDec
                                    (TKeyword (Keyword "boolean"))
-                                   (Identifier "bar")
-                                   [] (Symbol ";")]
+                                   (Identifier "bar") []]
                                  [Let
                                    (LetVarName (Identifier "foo"))
                                    (Expr (Leaf (IntegerConstant 5))) ,
                                   Let
                                    (LetVarName (Identifier "bar"))
-                                   (Expr (Leaf (KeywordConstant "true")))]
-                                 (Symbol "}")))
+                                   (Expr (Leaf (KeywordConstant "true")))]))
                              $ parseIt subroutineBodyP
                              "{var int foo; var boolean bar; let foo = 5; let bar = true;}")
 
 tSubroutineBodyNoVars = TestCase (assertEqual "subroutine body with no vars"
                                   (Right
-                                    (SubroutineBody (Symbol "{")
+                                    (SubroutineBody
                                       []
                                       [(Do
                                          (SubCallClassOrVar (Identifier "what")
-                                           (Identifier "huh") []))]
-                                     (Symbol "}")))
+                                           (Identifier "huh") []))]))
                                  $ parseIt subroutineBodyP
                                  "{   do what.huh(); }")
 
@@ -363,19 +355,15 @@ tSubroutineDec = TestCase (assertEqual "subroutine declaration"
                               (SubroutineDec (Keyword "method")
                                 (TKeyword (Keyword "void"))
                                 (Identifier "foo")
-                                (Symbol "(")
                                 (ParameterList
                                   [(TKeyword (Keyword "int"),
                                     Identifier "arg1"),
                                     (TKeyword (Keyword "boolean"),
                                      Identifier "arg2")])
-                                (Symbol ")")
-                                (SubroutineBody (Symbol "{")
-                                  [VarDec (Keyword "var")
+                                (SubroutineBody
+                                  [VarDec
                                     (TKeyword (Keyword "int"))
-                                    (Identifier "baz")
-                                    []
-                                    (Symbol ";")]
+                                    (Identifier "baz") []]
                                   [Let
                                     (LetVarName (Identifier "baz"))
                                     (Expr
@@ -383,8 +371,7 @@ tSubroutineDec = TestCase (assertEqual "subroutine declaration"
                                       (Leaf (VarName (Identifier "arg1")))
                                       (Op (Symbol "+"))
                                       (Leaf (IntegerConstant 5)))) ,
-                                    Return Nothing]
-                                  (Symbol "}"))))
+                                    Return Nothing])))
                           $ parseIt subroutineDecP
                           "method void foo (int arg1, boolean arg2) \
                           \ { var int baz; let baz = arg1 + 5; return;}")
@@ -395,46 +382,37 @@ tClassVarDecManyVars = TestCase (assertEqual "var boolean foo, bar, baz;"
                                     (ClassVarDec (Keyword "static")
                                       (TKeyword (Keyword "int"))
                                       (Identifier "foo")
-                                      [(Identifier "bar")]
-                                     (Symbol ";")))
+                                      [(Identifier "bar")]))
                            $ parseIt classVarDecP "static int foo, bar;")
 
 tClassWithBasicElems = TestCase (assertEqual "a basic class"
                                  (Right
                                   (Class (Keyword "class")
                                     (Identifier "foo")
-                                    (Symbol "{")
                                     [ClassVarDec
                                       (Keyword "static")
                                       (TKeyword (Keyword "int"))
                                       (Identifier "foo")
-                                      [Identifier "bar"]
-                                      (Symbol ";"),
+                                      [Identifier "bar"] ,
                                      ClassVarDec
                                       (Keyword "static")
                                       (TKeyword (Keyword "boolean"))
                                       (Identifier "baz")
-                                      [Identifier "buz"]
-                                      (Symbol ";")]
+                                      [Identifier "buz"]]
                                     [SubroutineDec (Keyword "method")
                                       (TKeyword (Keyword "void"))
                                       (Identifier "doFoo")
-                                      (Symbol "(")
                                       (ParameterList
                                         [(TKeyword (Keyword "int"),
                                           Identifier "foo"),
                                           (TKeyword (Keyword "boolean"),
                                            Identifier "baz")])
-                                      (Symbol ")")
                                       (SubroutineBody
-                                        (Symbol "{")
                                         []
                                         [Return
                                           (Just
                                             (Expr
-                                             (Leaf (VarName (Identifier "foo")))))]
-                                        (Symbol "}"))]
-                                    (Symbol "}")))
+                                             (Leaf (VarName (Identifier "foo")))))])]))
                            $ parseIt classP "class foo { static int foo, bar; \
                                            \ static boolean baz, buz; \
                                            \ method void doFoo (int foo, boolean baz) \

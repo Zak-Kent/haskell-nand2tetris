@@ -74,11 +74,11 @@ data Type = TKeyword Keyword
   deriving (Show, Eq)
 
 -- 'var' type varName (',' varName)* ';'
-data VarDec = VarDec Keyword Type VarName [VarName] Symbol
+data VarDec = VarDec Type VarName [VarName]
   deriving (Show, Eq)
 
 -- '{' varDec* statements '}'
-data SubroutineBody = SubroutineBody Symbol [VarDec] Statements Symbol
+data SubroutineBody = SubroutineBody [VarDec] Statements
   deriving (Show, Eq)
 
 -- ((type varName) (',' type varName)*)?
@@ -88,13 +88,13 @@ data ParameterList = ParameterList [(Type, VarName)]
 -- ('constructor' | 'function' |'method') ('void' | type) subroutineName
 --   '(' parameterLIst ')' subroutineBody
 data SubroutineDec = SubroutineDec Keyword Type Identifier
-                       Symbol ParameterList Symbol SubroutineBody
+                     ParameterList SubroutineBody
                        deriving (Show, Eq)
 
 -- ('static' 'field') type varName (',' varName)* ';'
-data ClassVarDec = ClassVarDec Keyword Type VarName [VarName] Symbol
+data ClassVarDec = ClassVarDec Keyword Type VarName [VarName]
   deriving (Show, Eq)
 
 -- 'class' className '{' classVarDec* subroutineDec* '}'
-data Class = Class Keyword Identifier Symbol [ClassVarDec] [SubroutineDec] Symbol
+data Class = Class Keyword Identifier [ClassVarDec] [SubroutineDec]
   deriving (Show, Eq)

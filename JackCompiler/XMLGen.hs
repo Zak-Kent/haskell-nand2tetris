@@ -140,21 +140,22 @@ instance XML Type where
   genXML (TIdentifier i) = genXML i
 
 instance XML VarDec where
-  genXML (VarDec varKw typ vn vns sc) =
+  genXML (VarDec typ vn vns) =
     let varNames = intercalate (genXML (Symbol ",")) $
                    map genXML $ [vn] ++ vns
     in xTagMultiLine "varDec" $
-       genXTags [WrapX varKw, WrapX typ]
+       genXTags [WrapX (Keyword "var"), WrapX typ]
        ++ varNames
-       ++ genXML sc
+       ++ genXML (Symbol ";")
 
 instance XML [VarDec] where
   genXML varDecs = concatMap genXML varDecs
 
 instance XML SubroutineBody where
-  genXML (SubroutineBody lc varDecs stmts rc) =
+  genXML (SubroutineBody varDecs stmts) =
     xTagMultiLine "subroutineBody" $
-    genXTags [WrapX lc, WrapX varDecs, WrapX stmts, WrapX rc]
+    genXTags [WrapX (Symbol "{"), WrapX varDecs,
+              WrapX stmts, WrapX (Symbol "}")]
 
 instance XML ParameterList where
   genXML (ParameterList params) =
@@ -163,28 +164,28 @@ instance XML ParameterList where
     where genParamsXML (t, vn) = genXTags [WrapX t, WrapX vn]
 
 instance XML SubroutineDec where
-  genXML (SubroutineDec kw typ sn lp pList rp sb) =
+  genXML (SubroutineDec kw typ sn pList sb) =
     xTagMultiLine "subroutineDec" $
-    genXTags [WrapX kw, WrapX typ, WrapX sn, WrapX lp, WrapX pList,
-              WrapX rp, WrapX sb]
+    genXTags [WrapX kw, WrapX typ, WrapX sn, WrapX (Symbol "("),
+              WrapX pList, WrapX (Symbol ")"), WrapX sb]
 
 instance XML [SubroutineDec] where
   genXML subDecs = concatMap genXML subDecs
 
 instance XML ClassVarDec where
-  genXML (ClassVarDec kw typ vn vns sc) =
+  genXML (ClassVarDec kw typ vn vns) =
     let varNames = intercalate (genXML (Symbol ",")) $
                    map genXML $ [vn] ++ vns
     in xTagMultiLine "classVarDec" $
     genXTags [WrapX kw, WrapX typ]
     ++ varNames
-    ++ genXML sc
+    ++ genXML (Symbol ";")
 
 instance XML [ClassVarDec] where
   genXML cvDecs = concatMap genXML cvDecs
 
 instance XML Class where
-  genXML (Class kw cn lc clsVars subDecs rc) =
+  genXML (Class kw cn clsVars subDecs) =
     xTagMultiLine "class" $
-    genXTags [WrapX kw, WrapX cn, WrapX lc, WrapX clsVars,
-              WrapX subDecs, WrapX rc]
+    genXTags [WrapX kw, WrapX cn, WrapX (Symbol "{"), WrapX clsVars,
+              WrapX subDecs, WrapX (Symbol "}")]
