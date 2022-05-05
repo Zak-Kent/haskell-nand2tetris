@@ -51,7 +51,7 @@ data Term = IntegerConstant Int
   deriving (Show, Eq)
 
 data LetVarName = LetVarName VarName
-  | LetVarNameExpr VarName Symbol Expr Symbol
+  | LetVarNameExpr VarName Expr
   deriving (Show, Eq)
 
 data Else = Else Keyword Symbol Statements Symbol deriving (Show, Eq)

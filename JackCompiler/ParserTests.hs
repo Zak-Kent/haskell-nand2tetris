@@ -210,9 +210,7 @@ tLetStatementWExpr = TestCase (assertEqual "let statement with expr varname"
                                 (Right
                                   (Let (Keyword "let")
                                     (LetVarNameExpr (Identifier "foo")
-                                      (Symbol "[")
-                                      (Expr (Leaf (IntegerConstant 1)))
-                                      (Symbol "]"))
+                                      (Expr (Leaf (IntegerConstant 1))))
                                     (Symbol "=")
                                     (Expr (Leaf (IntegerConstant 5)))
                                     (Symbol ";")))

@@ -174,7 +174,7 @@ letVarNameP = do
   lvn <- Ps.choice $ map Ps.try [varNameExprP, varNameP]
   return (vnToLetVn lvn)
   where vnToLetVn (VarName i) = (LetVarName i)
-        vnToLetVn (VarNameExpr i expr) = (LetVarNameExpr i (Symbol "[") expr (Symbol "]"))
+        vnToLetVn (VarNameExpr i expr) = (LetVarNameExpr i expr)
 
 letP :: Ps.Parsec String () Statement
 letP = do

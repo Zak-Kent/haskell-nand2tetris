@@ -89,8 +89,8 @@ instance XML Term where
 
 instance XML LetVarName where
   genXML (LetVarName vn) = genXML vn
-  genXML (LetVarNameExpr vn lb expr rb) =
-    genXTags [WrapX vn, WrapX lb, WrapX expr, WrapX rb]
+  genXML (LetVarNameExpr vn expr) =
+    genXTags [WrapX vn, WrapX (Symbol "["), WrapX expr, WrapX (Symbol "]")]
 
 instance XML Else where
   genXML (Else kw lc stmts rc) =
