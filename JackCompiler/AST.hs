@@ -44,7 +44,7 @@ data Term = IntegerConstant Int
   | KeywordConstant String
   | VarName VarName
   | UnaryOp Symbol Term
-  | VarNameExpr VarName Symbol Expr Symbol
+  | VarNameExpr VarName Expr
   | ParenExpr Symbol Expr Symbol
   | SubroutineCall SubCall
   | Op Symbol

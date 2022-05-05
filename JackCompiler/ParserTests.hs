@@ -166,13 +166,11 @@ tSubroutineCall = TestCase (assertEqual "sub routine name"
 tVarNameArrayAcccess = TestCase (assertEqual "array access using []"
                                   (Right
                                     (VarNameExpr (Identifier "foo")
-                                      (Symbol "[")
                                       (Expr
                                        (Node
                                         (Leaf (IntegerConstant 1))
                                         (Op (Symbol "+"))
-                                        (Leaf (IntegerConstant 2))))
-                                      (Symbol "]")))
+                                        (Leaf (IntegerConstant 2))))))
                                   $ parseIt varNameExprP "foo[1 + 2]")
 
 -- parenExprP tests
@@ -198,9 +196,7 @@ tParensWrappingExpression = TestCase (assertEqual "parens wrapping expression"
 tTermArrayAccess = TestCase (assertEqual "term array access: foo[1]"
                               (Right
                                (VarNameExpr (Identifier "foo")
-                                 (Symbol "[")
-                                 (Expr (Leaf (IntegerConstant 1)))
-                                 (Symbol "]")))
+                                 (Expr (Leaf (IntegerConstant 1)))))
                               $ parseIt termP "foo[1]")
 
 tTermMethodCall = TestCase (assertEqual "method call foo.bar()"

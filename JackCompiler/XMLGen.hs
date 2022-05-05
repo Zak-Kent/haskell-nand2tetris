@@ -76,8 +76,11 @@ instance XML Term where
   genXML (KeywordConstant k) = termTag $ xTag "keyword" k
   genXML (VarName i) = termTag $ genXML i -- VarName becomes an identifier tag
   genXML  (UnaryOp s t) = termTag $ genXML s ++ genXML t
-  genXML (VarNameExpr vName lb expr rb) =
-    termTag $ genXTags [WrapX vName, WrapX lb, WrapX expr, WrapX rb]
+  genXML (VarNameExpr vName expr) =
+    termTag $ genXTags [WrapX vName,
+                        WrapX (Symbol "["),
+                        WrapX expr,
+                        WrapX (Symbol "]")]
   genXML (ParenExpr lp expr rp) = termTag
     $ genXTags [WrapX lp, WrapX expr, WrapX rp]
   genXML (SubroutineCall subCall) = termTag $ genXML subCall

@@ -140,10 +140,10 @@ varNameP = do
 varNameExprP :: Ps.Parsec String () Term
 varNameExprP = do
   vn <- identifierP
-  lb <- symP "["
+  _ <- symP "["
   expr <- exprP
-  rb <- symP "]"
-  return (VarNameExpr vn lb expr rb)
+  _ <- symP "]"
+  return (VarNameExpr vn expr)
 
 parenExprP :: Ps.Parsec String () Term
 parenExprP = do
@@ -174,7 +174,7 @@ letVarNameP = do
   lvn <- Ps.choice $ map Ps.try [varNameExprP, varNameP]
   return (vnToLetVn lvn)
   where vnToLetVn (VarName i) = (LetVarName i)
-        vnToLetVn (VarNameExpr i lb expr rb) = (LetVarNameExpr i lb expr rb)
+        vnToLetVn (VarNameExpr i expr) = (LetVarNameExpr i (Symbol "[") expr (Symbol "]"))
 
 letP :: Ps.Parsec String () Statement
 letP = do
