@@ -45,7 +45,7 @@ data Term = IntegerConstant Int
   | VarName VarName
   | UnaryOp Symbol Term
   | VarNameExpr VarName Expr
-  | ParenExpr Symbol Expr Symbol
+  | ParenExpr Expr
   | SubroutineCall SubCall
   | Op Symbol
   deriving (Show, Eq)

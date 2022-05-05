@@ -82,8 +82,8 @@ instance XML Term where
                         WrapX (Symbol "["),
                         WrapX expr,
                         WrapX (Symbol "]")]
-  genXML (ParenExpr lp expr rp) = termTag
-    $ genXTags [WrapX lp, WrapX expr, WrapX rp]
+  genXML (ParenExpr expr) = termTag
+    $ genXTags [WrapX (Symbol "("), WrapX expr, WrapX (Symbol ")")]
   genXML (SubroutineCall subCall) = termTag $ genXML subCall
   genXML (Op s) = genXML s
 

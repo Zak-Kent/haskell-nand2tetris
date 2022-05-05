@@ -159,7 +159,6 @@ tVarNameArrayAcccess = TestCase (assertEqual "array access using []"
 tParensWrappingExpression = TestCase (assertEqual "parens wrapping expression"
                                        (Right
                                          (ParenExpr
-                                           (Symbol "(")
                                            (Expr
                                             (Node
                                              (Leaf (IntegerConstant 1))
@@ -170,8 +169,7 @@ tParensWrappingExpression = TestCase (assertEqual "parens wrapping expression"
                                               (Node
                                                (Leaf (IntegerConstant 3))
                                                (Op (Symbol "+"))
-                                               (Leaf (IntegerConstant 4))))))
-                                           (Symbol ")")))
+                                               (Leaf (IntegerConstant 4))))))))
                                        $ parseIt parenExprP "(1+2 +   3  + 4)")
 
 -- termP tests

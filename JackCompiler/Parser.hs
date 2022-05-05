@@ -147,10 +147,10 @@ varNameExprP = do
 
 parenExprP :: Ps.Parsec String () Term
 parenExprP = do
-  lp <- symP "("
+  _ <- symP "("
   expr <- exprP
-  rp <- symP ")"
-  return (ParenExpr lp expr rp)
+  _ <- symP ")"
+  return (ParenExpr expr)
 
 subroutineCallP :: Ps.Parsec String () Term
 subroutineCallP = do
