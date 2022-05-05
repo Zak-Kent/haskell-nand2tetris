@@ -94,20 +94,20 @@ exprP = do
 subCallNameP :: Ps.Parsec String () SubCall
 subCallNameP = do
   scn <- wrapEscapes identifierP
-  lp <- symP "("
+  _ <- symP "("
   exprList <- wrapEscapes $ Ps.sepBy exprP $ Ps.string ","
-  rp <- symP ")"
-  return (SubCallName scn lp exprList rp)
+  _ <- symP ")"
+  return (SubCallName scn exprList)
 
 subCallClassOrVarP :: Ps.Parsec String () SubCall
 subCallClassOrVarP = do
   n <- identifierP
-  dot <- symP "."
+  _ <- symP "."
   sn <- identifierP
-  lp <- symP "("
+  _ <- symP "("
   exprList <- wrapEscapes $ Ps.sepBy exprP $ Ps.string ","
-  rp <- symP ")"
-  return (SubCallClassOrVar n dot sn lp exprList rp)
+  _ <- symP ")"
+  return (SubCallClassOrVar n sn exprList)
 
 -- Term parsers
 keywordConstantP :: Ps.Parsec String () Term

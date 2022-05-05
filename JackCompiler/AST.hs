@@ -35,8 +35,8 @@ data Expr = Expr (Tree Term)
 
 -- subroutineCall: subroutineName '(' expressionList ')' |
 --               (className | varName) '.' subroutineName '(' expressionList ')'
-data SubCall = SubCallName Identifier Symbol [Expr] Symbol
-  | SubCallClassOrVar Identifier Symbol Identifier Symbol [Expr] Symbol
+data SubCall = SubCallName Identifier [Expr]
+  | SubCallClassOrVar Identifier Identifier [Expr]
   deriving (Show, Eq)
 
 data Term = IntegerConstant Int

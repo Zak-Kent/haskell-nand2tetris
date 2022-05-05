@@ -59,11 +59,12 @@ instance XML [Expr] where
                  $ intercalate (genXML (Symbol ",")) $ map genXML exprs
 
 instance XML SubCall where
-  genXML (SubCallName sName lp exprs rp) =
-    genXTags [WrapX sName, WrapX lp, WrapX exprs, WrapX rp]
-  genXML (SubCallClassOrVar cOrV d sName lp exprs rp) =
-    genXTags [WrapX cOrV, WrapX d, WrapX sName, WrapX lp,
-              WrapX exprs, WrapX rp]
+  genXML (SubCallName sName exprs) =
+    genXTags [WrapX sName, WrapX (Symbol "("),
+              WrapX exprs, WrapX (Symbol ")")]
+  genXML (SubCallClassOrVar cOrV sName exprs) =
+    genXTags [WrapX cOrV, WrapX (Symbol "."), WrapX sName,
+              WrapX (Symbol "("), WrapX exprs, WrapX (Symbol ")")]
 
 termTag :: String -> String
 termTag t = printf "<term>\n %s </term>\n" t

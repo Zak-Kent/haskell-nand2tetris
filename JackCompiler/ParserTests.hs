@@ -86,7 +86,6 @@ tExprManyTerms = TestCase (assertEqual "an expression with many terms parses"
 tBasicSubCall = TestCase (assertEqual "a sub routine with expr list parses"
                          (Right
                           (SubCallName (Identifier "foo")
-                            (Symbol "(")
                             [Expr
                               (Node
                                 (Leaf (IntegerConstant 5))
@@ -96,23 +95,17 @@ tBasicSubCall = TestCase (assertEqual "a sub routine with expr list parses"
                               (Node
                                 (Leaf (IntegerConstant 10))
                                 (Op (Symbol "-"))
-                                (Leaf (IntegerConstant 42)))]
-                            (Symbol ")")))
+                                (Leaf (IntegerConstant 42)))]))
                            $ parseIt subCallNameP "foo (5+8, 10  - 42)")
 
 tSubCallNoExprs = TestCase (assertEqual "a sub routine with no exprs"
-                            (Right (SubCallName (Identifier "bar")
-                                    (Symbol "(")
-                                    []
-                                    (Symbol ")")))
+                            (Right (SubCallName (Identifier "bar") []))
                             $ parseIt subCallNameP "bar()    ")
 
 -- subCallClassOrVarP tests
 tSubCallClassWithExprs = TestCase (assertEqual "a class sub routine with exprs"
                                   (Right (SubCallClassOrVar (Identifier "foo")
-                                         (Symbol ".")
                                          (Identifier "bar")
-                                         (Symbol "(")
                                          [(Expr
                                            (Node
                                             (Leaf (VarName (Identifier "bb")))
@@ -122,18 +115,13 @@ tSubCallClassWithExprs = TestCase (assertEqual "a class sub routine with exprs"
                                             (Node
                                              (Leaf (IntegerConstant 10))
                                              (Op (Symbol "-"))
-                                             (Leaf (IntegerConstant 42))))]
-                                         (Symbol ")")))
+                                             (Leaf (IntegerConstant 42))))]))
                                   $ parseIt
                                     subCallClassOrVarP "foo.bar(bb = 5, 10-42)")
 
 tSubCallClassNoExprs = TestCase (assertEqual "a class sub routine with exprs"
                                   (Right (SubCallClassOrVar (Identifier "biz")
-                                          (Symbol ".")
-                                          (Identifier "baz")
-                                          (Symbol "(")
-                                          []
-                                          (Symbol ")")))
+                                          (Identifier "baz") []))
                                   $ parseIt
                                     subCallClassOrVarP "  biz  .  baz  ()")
 
@@ -142,24 +130,18 @@ tClassSubroutineCall = TestCase (assertEqual "class sub routine"
                                   (Right
                                     (SubroutineCall
                                      (SubCallClassOrVar (Identifier "what")
-                                      (Symbol ".")
-                                      (Identifier "huh")
-                                      (Symbol "(")
-                                      []
-                                      (Symbol ")"))))
+                                      (Identifier "huh") [])))
                                   $ parseIt subroutineCallP "what.huh()")
 
 tSubroutineCall = TestCase (assertEqual "sub routine name"
                              (Right
                                (SubroutineCall
                                  (SubCallName (Identifier "things")
-                                   (Symbol "(")
                                    [(Expr
                                       (Node
                                         (Leaf (IntegerConstant 1))
                                         (Op (Symbol "+"))
-                                        (Leaf (IntegerConstant 2))))]
-                                   (Symbol ")"))))
+                                        (Leaf (IntegerConstant 2))))])))
                                  $ parseIt subroutineCallP "things(1+2)")
 
 -- varNameExprP tests
@@ -203,20 +185,13 @@ tTermMethodCall = TestCase (assertEqual "method call foo.bar()"
                              (Right
                                (SubroutineCall
                                  (SubCallClassOrVar (Identifier "foo")
-                                   (Symbol ".")
-                                   (Identifier "bar")
-                                   (Symbol "(")
-                                   []
-                                   (Symbol ")"))))
+                                   (Identifier "bar") [])))
                            $ parseIt termP "foo.bar()")
 
 tTermSubroutineCall = TestCase (assertEqual "subroutine call baz()"
                                  (Right
                                    (SubroutineCall
-                                     (SubCallName (Identifier "baz")
-                                       (Symbol "(")
-                                       []
-                                       (Symbol ")"))))
+                                     (SubCallName (Identifier "baz") [])))
                                  $ parseIt termP "baz()")
 
 tTermVarName = TestCase (assertEqual "varname blarg"
@@ -324,11 +299,7 @@ tDoSubCallStatement = TestCase (assertEqual "do what.huh()"
                                    (Do
                                      (Keyword "do")
                                      (SubCallClassOrVar (Identifier "what")
-                                      (Symbol ".")
-                                      (Identifier "huh")
-                                      (Symbol "(")
-                                      []
-                                      (Symbol ")"))
+                                      (Identifier "huh") [])
                                      (Symbol ";")))
                                  $ parseIt doP "do what.huh() ;")
 
@@ -406,11 +377,7 @@ tSubroutineBodyNoVars = TestCase (assertEqual "subroutine body with no vars"
                                       [(Do
                                          (Keyword "do")
                                          (SubCallClassOrVar (Identifier "what")
-                                           (Symbol ".")
-                                           (Identifier "huh")
-                                           (Symbol "(")
-                                           []
-                                           (Symbol ")"))
+                                           (Identifier "huh") [])
                                        (Symbol ";"))]
                                      (Symbol "}")))
                                  $ parseIt subroutineBodyP
