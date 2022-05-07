@@ -1,3 +1,5 @@
+module XMLTests where
+
 import Test.HUnit
 import qualified Text.Parsec as Ps
 import Data.Either

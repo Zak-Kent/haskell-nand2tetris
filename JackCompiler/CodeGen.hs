@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 module CodeGen where
 
 import Text.Printf
@@ -21,15 +22,15 @@ instance VMGen Term where
   genVM (StringConstant s) = printf "push %s\n" s
   genVM (KeywordConstant k) = printf "push %s\n" k
   genVM (VarName vn) = printf "push %s\n" (genVM vn)
-  genVM (UnaryOp (Symbol op) t) = printf "push %s\n %s\n" (genVM t) op
+  genVM (UnaryOp op t) = printf "%s\n %s\n" (genVM t) (genVM op)
   genVM (VarNameExpr vn (Expr expr)) =
     postOrderExpr expr ++ printf "call %s\n" (genVM vn)
   genVM (ParenExpr (Expr expr)) = postOrderExpr expr
   genVM (SubroutineCall (SubCallName sn exprs)) =
-    (concatMap (postOrderExpr . unWrapExpr) exprs)
+    (concatMap genVM exprs)
     ++ printf "call %s\n" (genVM sn)
   genVM (SubroutineCall (SubCallClassOrVar cvn sn exprs)) =
-    (concatMap (postOrderExpr . unWrapExpr) exprs)
+    (concatMap genVM exprs)
     ++ printf "call %s.%s" (genVM cvn) (genVM sn)
   genVM (Op s) = printf "%s\n" (genVM s)
 
@@ -40,3 +41,10 @@ postOrderExpr :: Tree Term -> String
 postOrderExpr (Leaf t) = genVM t
 postOrderExpr (Node lb op rb) =
   (postOrderExpr lb) <> (postOrderExpr rb) <> genVM op
+
+instance VMGen Expr where
+  genVM (Expr expr) = postOrderExpr expr
+
+instance VMGen [Expr] where
+  -- TODO: double check if you need to add \n between the lists here
+  genVM exprs = concatMap genVM exprs
