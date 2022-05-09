@@ -13,7 +13,7 @@ data SymbolInfo = SymbolInfo
     typ :: Type
   , kind :: Keyword
   , occurrence :: Int
-  } deriving (Show)
+  } deriving (Show, Eq)
 
 buildSymInfo :: [(VarName, Int)] -> Type -> Keyword -> [(VarName, SymbolInfo)]
 buildSymInfo xs t k = map (buildSym t k) xs
