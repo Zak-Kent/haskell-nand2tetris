@@ -20,8 +20,8 @@ buildSymInfo xs t k = map (buildSym t k) xs
   where buildSym t' k' (vn, oc) =
           (vn, SymbolInfo {typ = t', kind = k', occurrence = oc })
 
-symTableEntry :: ClassVarDec -> MemSegCountState [(VarName, SymbolInfo)]
-symTableEntry (ClassVarDec segKind tp vn vns) = do
+clsSymElms :: ClassVarDec -> MemSegCountState [(VarName, SymbolInfo)]
+clsSymElms (ClassVarDec segKind tp vn vns) = do
   -- return a list of pairs ready to be used in M.fromList to make symbol table
   memSegCount <- S.get
   let kindCount = getCount memSegCount segKind
@@ -47,5 +47,24 @@ classVarSymTable (Class _ _ cVarDecs _) =
 -}
   M.fromList
   $ concat
-  $ S.evalState (mapM symTableEntry cVarDecs)
+  $ S.evalState (mapM clsSymElms cVarDecs)
   $ M.fromList [((Keyword "static"),  0), ((Keyword "field"), 0)]
+
+subArgSyms :: ParameterList -> Type -> [(VarName, SymbolInfo)]
+subArgSyms (ParameterList params) cls = thisEntry:paramSymInfo params
+  where thisEntry = ((Identifier "this"),
+                     SymbolInfo { typ = cls,
+                                  kind = (Keyword "argument"),
+                                  occurrence = 0})
+        paramSymInfo ps = concatMap symInfos $ zip ps [1..]
+        symInfos ((tp, vn), oc) = buildSymInfo [(vn, oc)] tp (Keyword "argument")
+
+subBodySyms :: SubroutineBody -> [(VarName, SymbolInfo)]
+subBodySyms (SubroutineBody vars _) =
+  concatMap symInfos $ zip (concatMap joinVars vars) [0..]
+  where symInfos ((tp, vn), oc) = buildSymInfo [(vn, oc)] tp (Keyword "local")
+        joinVars (VarDec t vn vns) = map (\v -> (t, v)) (vn:vns)
+
+subVarSymTable :: Type -> SubroutineDec -> (M.Map VarName SymbolInfo)
+subVarSymTable cls (SubroutineDec _ _ _ params subBody) =
+  M.fromList $ subArgSyms params cls ++ subBodySyms subBody
