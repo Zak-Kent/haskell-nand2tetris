@@ -50,13 +50,20 @@ classVarSymTable (Class _ _ cVarDecs _) =
   $ S.evalState (mapM clsSymElms cVarDecs)
   $ M.fromList [((Keyword "static"),  0), ((Keyword "field"), 0)]
 
-subArgSyms :: ParameterList -> Type -> [(VarName, SymbolInfo)]
-subArgSyms (ParameterList params) cls = thisEntry:paramSymInfo params
+subArgSyms :: ParameterList -> Keyword -> Type -> [(VarName, SymbolInfo)]
+subArgSyms (ParameterList params) subTyp cls =
+  case subTyp of
+    -- only the Jack methods get the extra 'this' entry in the symbol table
+    (Keyword "method") -> thisEntry:paramSymInfo params
+    _ -> paramSymInfo params
   where thisEntry = ((Identifier "this"),
                      SymbolInfo { typ = cls,
                                   kind = (Keyword "argument"),
                                   occurrence = 0})
-        paramSymInfo ps = concatMap symInfos $ zip ps [1..]
+        occurrences = case subTyp of
+          (Keyword "method") -> [1..]
+          _ -> [0..]
+        paramSymInfo ps = concatMap symInfos $ zip ps occurrences
         symInfos ((tp, vn), oc) = buildSymInfo [(vn, oc)] tp (Keyword "argument")
 
 subBodySyms :: SubroutineBody -> [(VarName, SymbolInfo)]
@@ -66,5 +73,5 @@ subBodySyms (SubroutineBody vars _) =
         joinVars (VarDec t vn vns) = map (\v -> (t, v)) (vn:vns)
 
 subVarSymTable :: Type -> SubroutineDec -> (M.Map VarName SymbolInfo)
-subVarSymTable cls (SubroutineDec _ _ _ params subBody) =
-  M.fromList $ subArgSyms params cls ++ subBodySyms subBody
+subVarSymTable cls (SubroutineDec subTyp _ _ params subBody) =
+  M.fromList $ subArgSyms params subTyp cls ++ subBodySyms subBody
