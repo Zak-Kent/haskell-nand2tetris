@@ -1,9 +1,22 @@
 import Test.HUnit
+import qualified Control.Monad.State as S
+import qualified Data.Map as M
 
 import CodeGen
--- import AST
+import AST
+import SymbolTable
 import Parser
 import XMLTests
+
+dummyMap = M.fromList [(Identifier "arg2",
+                        SymbolInfo {typ = TKeyword (Keyword "int"),
+                                    kind = Keyword "argument",
+                                    occurrence = 1})]
+
+evalExpr :: Maybe Expr -> Maybe String
+evalExpr Nothing = Nothing
+evalExpr (Just expr) =
+  Just $ S.evalState (genVM expr) (dummyMap, dummyMap)
 
 tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
                         (Just
@@ -14,7 +27,7 @@ tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
                           \+ \
                           \+"))
                         $ fmap joinTags
-                        $ fmap genVM
+                        $ evalExpr
                         $ tryParse exprP "5 + 6 + 7")
 
 tExprWithParens = TestCase (assertEqual "(4 + 2) - 8 + (3 * (2 + 1))"
@@ -32,7 +45,7 @@ tExprWithParens = TestCase (assertEqual "(4 + 2) - 8 + (3 * (2 + 1))"
                              \ + \
                              \ -"))
                             $ fmap joinTags
-                            $ fmap genVM
+                            $ evalExpr
                             $ tryParse exprP "(4 + 2) - 8 + (3 * (2 + 1))")
 
 tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
@@ -48,7 +61,7 @@ tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
                                  \ * \
                                  \ +"))
                                 $ fmap joinTags
-                                $ fmap genVM
+                                $ evalExpr
                                 $ tryParse exprP "x + g(2,y,-z) * 5")
 
 exprTests =

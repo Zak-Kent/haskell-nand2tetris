@@ -1,50 +1,74 @@
 {-# LANGUAGE FlexibleInstances #-}
 module CodeGen where
 
+import qualified Control.Monad.State as S
+import qualified Data.Map as M
 import Text.Printf
 
 import AST
+import SymbolTable
+
+type SymTable = M.Map VarName SymbolInfo
+-- the two symbols tables needed at any given point in compilation
+-- (<class symbol table>, <subroutine symbol table>)
+type SymbolTableState = S.State (SymTable, SymTable)
 
 class VMGen a where
-  genVM :: a -> String
+  genVM :: a -> SymbolTableState String
 
 instance VMGen Symbol where
-  genVM (Symbol s) = s
+  genVM (Symbol s) = return s
 
 instance VMGen Keyword where
-  genVM (Keyword k) = k
+  genVM (Keyword k) = return k
 
 instance VMGen Identifier where
-  genVM (Identifier i) = i
+  genVM (Identifier i) = return i
 
 instance VMGen Term where
-  genVM (IntegerConstant i) = printf "push %d\n" i
-  genVM (StringConstant s) = printf "push %s\n" s
-  genVM (KeywordConstant k) = printf "push %s\n" k
-  genVM (VarName vn) = printf "push %s\n" (genVM vn)
-  genVM (UnaryOp op t) = printf "%s\n %s\n" (genVM t) (genVM op)
-  genVM (VarNameExpr vn (Expr expr)) =
-    postOrderExpr expr ++ printf "call %s\n" (genVM vn)
-  genVM (ParenExpr (Expr expr)) = postOrderExpr expr
-  genVM (SubroutineCall (SubCallName sn exprs)) =
-    (concatMap genVM exprs)
-    ++ printf "call %s\n" (genVM sn)
-  genVM (SubroutineCall (SubCallClassOrVar cvn sn exprs)) =
-    (concatMap genVM exprs)
-    ++ printf "call %s.%s" (genVM cvn) (genVM sn)
-  genVM (Op s) = printf "%s\n" (genVM s)
+  genVM (IntegerConstant i) = return $ printf "push %d\n" i
+  genVM (StringConstant s) = return $ printf "push %s\n" s
+  genVM (KeywordConstant k) = return $ printf "push %s\n" k
+  genVM (VarName vn) = do
+    s <- S.get
+    return $ printf "push %s\n" (S.evalState (genVM vn) s)
+  genVM (UnaryOp op t) = do
+    s <- S.get
+    return $ printf "%s\n %s\n" (S.evalState (genVM t) s) (S.evalState (genVM op) s)
+  genVM (VarNameExpr vn (Expr expr)) = do
+    s <- S.get
+    return $ S.evalState (postOrderExpr expr) s
+      ++ printf "call %s\n" (S.evalState (genVM vn) s)
+  genVM (ParenExpr (Expr expr)) = do
+    s <- S.get
+    return $ S.evalState (postOrderExpr expr) s
+  genVM (SubroutineCall (SubCallName sn exprs)) = do
+    s <- S.get
+    return $ (concat $ S.evalState (mapM genVM exprs) s)
+      ++ (printf "call %s\n" (S.evalState (genVM sn) s)) -- (genVM sn)
+  genVM (SubroutineCall (SubCallClassOrVar cvn sn exprs)) = do
+    s <- S.get
+    return $ (concat $ S.evalState (mapM genVM exprs) s)
+      ++ printf "call %s.%s" (S.evalState (genVM cvn) s) (S.evalState (genVM sn) s)
+  genVM (Op s) = do
+    st <- S.get
+    return $ printf "%s\n" (S.evalState (genVM s) st)
 
-unWrapExpr :: Expr -> Tree Term
-unWrapExpr (Expr expr) = expr
-
-postOrderExpr :: Tree Term -> String
+postOrderExpr :: Tree Term -> SymbolTableState String
 postOrderExpr (Leaf t) = genVM t
-postOrderExpr (Node lb op rb) =
-  (postOrderExpr lb) <> (postOrderExpr rb) <> genVM op
+postOrderExpr (Node lb op rb) = do
+  s <- S.get
+  return $ (S.evalState (postOrderExpr lb) s)
+    <> (S.evalState (postOrderExpr rb) s)
+    <> (S.evalState (genVM op) s)
 
 instance VMGen Expr where
-  genVM (Expr expr) = postOrderExpr expr
+  genVM (Expr expr) = do
+    s <- S.get
+    return $ S.evalState (postOrderExpr expr) s
 
 instance VMGen [Expr] where
   -- TODO: double check if you need to add \n between the lists here
-  genVM exprs = concatMap genVM exprs
+  genVM exprs = do
+    s <- S.get
+    return $ concat $ S.evalState (mapM genVM exprs) s
