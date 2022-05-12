@@ -31,10 +31,10 @@ classSymT = M.fromList [(Identifier "g",
                                      kind = Keyword "local should win",
                                      occurrence = 0})]
 
-evalVM :: Maybe Expr -> Maybe String
+evalVM :: (VMGen a) => Maybe a -> Maybe String
 evalVM Nothing = Nothing
-evalVM (Just expr) =
-  Just $ S.evalState (genVM expr) (classSymT, localSymT)
+evalVM (Just vm) =
+  Just $ S.evalState (genVM vm) (classSymT, localSymT)
 
 tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
                         (Just
@@ -82,12 +82,53 @@ tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
                                 $ evalVM
                                 $ tryParse exprP "x + g(2,y,-z) * 5")
 
+tLetStatementCG = TestCase (assertEqual "let x = 5;"
+                            (Just
+                             (joinTags
+                              "push 5 \
+                             \ pop \
+                             \ argument 1"))
+                           $ fmap joinTags
+                           $ evalVM
+                           $ tryParse statementP "let x = 5;")
+
+tLetStatementWExprCG = TestCase (assertEqual "let g = 3 + 5;"
+                                 (Just
+                                  (joinTags
+                                   "push 3 \
+                                  \ push 5 \
+                                  \ + \
+                                  \ pop field 0"))
+                           $ fmap joinTags
+                           $ evalVM
+                           $ tryParse statementP "let g = 3 + 5;")
+
+tLetStatementVarNameExprCG =
+  TestCase (assertEqual "let y[0] = 3;"
+           -- TODO: this is behavior is wrong, fix when you learn how
+           -- to handle array access
+            (Just
+             (joinTags
+              "push 3 \
+             \ pop \
+             \ push 0 \
+             \ pop local 5"))
+             $ fmap joinTags
+             $ evalVM
+             $ tryParse statementP "let y[0] = 3;")
+
+
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
             TestLabel "(4 + 2) - 8 + (3 * (2 + 1))" tExprWithParens,
             TestLabel "x + g(2,y,-z) * 5" tExprWithMethodCall]
 
+statementTests =
+  TestList [TestLabel "let x = 5;" tLetStatementCG,
+            TestLabel "let g = 3 + 5;" tLetStatementWExprCG,
+            TestLabel "let y[0] = 3;" tLetStatementVarNameExprCG]
+
 runVMGenTests :: Test
 runVMGenTests =
   TestList
-  $ concat $ [l | (TestList l) <- [exprTests]]
+  $ concat $ [l | (TestList l) <- [exprTests, statementTests]]

@@ -122,3 +122,18 @@ instance VMGen [Expr] where
   genVM exprs = do
     s <- S.get
     return $ concat $ S.evalState (mapM genVM exprs) s
+
+instance VMGen LetVarName where
+  genVM (LetVarName vn) = genVM vn
+  genVM (LetVarNameExpr vn expr) = do
+    -- TODO: this is behavior is wrong, fix when you learn how
+    -- to handle array access
+    v <- genVM vn
+    e <- evalExpr expr
+    return $ e <> "pop " <> v
+
+instance VMGen Statement where
+  genVM (Let vn expr) = do
+    v <- genVM vn
+    e <- evalExpr expr
+    return $ e <> "pop " <> v
