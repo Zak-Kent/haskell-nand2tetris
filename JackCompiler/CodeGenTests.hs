@@ -13,9 +13,9 @@ dummyMap = M.fromList [(Identifier "arg2",
                                     kind = Keyword "argument",
                                     occurrence = 1})]
 
-evalExpr :: Maybe Expr -> Maybe String
-evalExpr Nothing = Nothing
-evalExpr (Just expr) =
+evalVM :: Maybe Expr -> Maybe String
+evalVM Nothing = Nothing
+evalVM (Just expr) =
   Just $ S.evalState (genVM expr) (dummyMap, dummyMap)
 
 tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
@@ -27,7 +27,7 @@ tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
                           \+ \
                           \+"))
                         $ fmap joinTags
-                        $ evalExpr
+                        $ evalVM
                         $ tryParse exprP "5 + 6 + 7")
 
 tExprWithParens = TestCase (assertEqual "(4 + 2) - 8 + (3 * (2 + 1))"
@@ -45,7 +45,7 @@ tExprWithParens = TestCase (assertEqual "(4 + 2) - 8 + (3 * (2 + 1))"
                              \ + \
                              \ -"))
                             $ fmap joinTags
-                            $ evalExpr
+                            $ evalVM
                             $ tryParse exprP "(4 + 2) - 8 + (3 * (2 + 1))")
 
 tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
@@ -61,7 +61,7 @@ tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
                                  \ * \
                                  \ +"))
                                 $ fmap joinTags
-                                $ evalExpr
+                                $ evalVM
                                 $ tryParse exprP "x + g(2,y,-z) * 5")
 
 exprTests =
