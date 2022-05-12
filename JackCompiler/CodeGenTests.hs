@@ -8,15 +8,33 @@ import SymbolTable
 import Parser
 import XMLTests
 
-dummyMap = M.fromList [(Identifier "arg2",
-                        SymbolInfo {typ = TKeyword (Keyword "int"),
-                                    kind = Keyword "argument",
-                                    occurrence = 1})]
+localSymT = M.fromList [(Identifier "x",
+                         SymbolInfo {typ = TKeyword (Keyword "int"),
+                                     kind = Keyword "argument",
+                                     occurrence = 1}),
+                        (Identifier "y",
+                         SymbolInfo {typ = TKeyword (Keyword "int"),
+                                     kind = Keyword "local",
+                                     occurrence = 5})]
+
+
+classSymT = M.fromList [(Identifier "g",
+                         SymbolInfo {typ = TKeyword (Keyword "int"),
+                                     kind = Keyword "field",
+                                     occurrence = 0}),
+                         (Identifier "z",
+                         SymbolInfo {typ = TKeyword (Keyword "int"),
+                                     kind = Keyword "static",
+                                     occurrence = 2}),
+                        (Identifier "y",
+                         SymbolInfo {typ = TKeyword (Keyword "int"),
+                                     kind = Keyword "local should win",
+                                     occurrence = 0})]
 
 evalVM :: Maybe Expr -> Maybe String
 evalVM Nothing = Nothing
 evalVM (Just expr) =
-  Just $ S.evalState (genVM expr) (dummyMap, dummyMap)
+  Just $ S.evalState (genVM expr) (classSymT, localSymT)
 
 tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
                         (Just
@@ -51,12 +69,12 @@ tExprWithParens = TestCase (assertEqual "(4 + 2) - 8 + (3 * (2 + 1))"
 tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
                                 (Just
                                  (joinTags
-                                  "push x \
+                                  "push argument 1 \
                                  \ push 2 \
-                                 \ push y \
-                                 \ push z \
+                                 \ push local 5 \
+                                 \ push static 2 \
                                  \ - \
-                                 \ call g \
+                                 \ call field 0 \
                                  \ push 5 \
                                  \ * \
                                  \ +"))

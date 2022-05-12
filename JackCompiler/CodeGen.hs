@@ -39,10 +39,25 @@ evalExpr (Expr expr) = do
   s <- S.get
   return $ S.evalState (postOrderExpr expr) s
 
-evalExprs ::  [Expr] -> SymbolTableState String
+evalExprs :: [Expr] -> SymbolTableState String
 evalExprs exprs = do
   s <- S.get
   return $ concat $ S.evalState (mapM genVM exprs) s
+
+lookupSym :: VarName -> SymbolTableState (Maybe SymbolInfo)
+lookupSym vn = do
+  s <- S.get
+  return $ checkVal vn s
+  where checkVal v (clsSyms, localSyms) =
+          case M.lookup v localSyms of
+            (Just symI) -> (Just symI)
+            Nothing -> case M.lookup v clsSyms of
+              Nothing -> Nothing
+              (Just symI) -> (Just symI)
+
+genSymCmd :: SymbolInfo -> String
+-- TODO: figure out where push vs. pop happens depending on context
+genSymCmd (SymbolInfo _ (Keyword k) occ) = printf "%s %d\n" k occ
 
 class VMGen a where
   genVM :: a -> SymbolTableState String
@@ -54,13 +69,22 @@ instance VMGen Keyword where
   genVM (Keyword k) = return k
 
 instance VMGen Identifier where
-  genVM (Identifier i) = return i
+  genVM i = do
+    symI <- lookupSym i
+    return $ symCmd symI
+      where symCmd si =
+              case si of
+                -- TODO: add better error reporting
+                -- This will cause the VM commands to pop but,
+                -- you could pop out of code gen when this happens
+                Nothing -> "error: symbol not found"
+                (Just s) -> genSymCmd s
 
 instance VMGen Term where
   genVM (IntegerConstant i) = return $ printf "push %d\n" i
   genVM (StringConstant s) = return $ printf "push %s\n" s
   genVM (KeywordConstant k) = return $ printf "push %s\n" k
-  genVM (VarName vn) = cmds "push %s\n" [VM vn]
+  genVM (VarName vn) = cmds "push %s " [VM vn]
   genVM (UnaryOp op t) = cmds "%s\n %s\n" [VM t, VM op]
   genVM (VarNameExpr vn expr) = do
     e <- evalExpr expr
