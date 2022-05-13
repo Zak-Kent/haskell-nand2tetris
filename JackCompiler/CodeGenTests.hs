@@ -74,7 +74,7 @@ tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
                                  \ push local 5 \
                                  \ push static 2 \
                                  \ - \
-                                 \ call field 0 \
+                                 \ call g \
                                  \ push 5 \
                                  \ * \
                                  \ +"))
@@ -117,6 +117,16 @@ tLetStatementVarNameExprCG =
              $ evalVM
              $ tryParse statementP "let y[0] = 3;")
 
+tDoSubCallStatementCG =
+  TestCase (assertEqual "do foo.bar(1, 2);"
+            (Just
+             (joinTags
+              "push 1 \
+             \ push 2 \
+             \ call foo.bar"))
+             $ fmap joinTags
+             $ evalVM
+             $ tryParse statementP "do foo.bar(1, 2);")
 
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
@@ -126,7 +136,8 @@ exprTests =
 statementTests =
   TestList [TestLabel "let x = 5;" tLetStatementCG,
             TestLabel "let g = 3 + 5;" tLetStatementWExprCG,
-            TestLabel "let y[0] = 3;" tLetStatementVarNameExprCG]
+            TestLabel "let y[0] = 3;" tLetStatementVarNameExprCG,
+            TestLabel"do foo.bar(1, 2);" tDoSubCallStatementCG]
 
 runVMGenTests :: Test
 runVMGenTests =

@@ -70,6 +70,14 @@ instance VMGen Identifier where
                 Nothing -> "error: symbol not found"
                 (Just s) -> genSymCmd s
 
+instance VMGen SubCall where
+  -- TODO: you many need to add VM cmds here to pop off the dummy
+  -- return value if any void methods are called
+  genVM (SubCallName (Identifier sn) exprs) =
+    (++) <$> genVM exprs <*> (pure $ printf "call %s\n" sn)
+  genVM (SubCallClassOrVar (Identifier cvn) (Identifier sn) exprs) =
+    (++) <$> genVM exprs <*> (pure $ printf "call %s.%s" cvn sn)
+
 instance VMGen Term where
   genVM (IntegerConstant i) = return $ printf "push %d\n" i
   genVM (StringConstant s) = return $ printf "push %s\n" s
@@ -79,10 +87,7 @@ instance VMGen Term where
   genVM (VarNameExpr vn expr) =
     (++) <$> genVM expr <*> cmds "call %s\n" [VM vn]
   genVM (ParenExpr expr) = genVM expr
-  genVM (SubroutineCall (SubCallName sn exprs)) =
-    (++) <$> genVM exprs <*> cmds "call %s\n" [VM sn]
-  genVM (SubroutineCall (SubCallClassOrVar cvn sn exprs)) =
-    (++) <$> genVM exprs <*> cmds "call %s.%s" [VM cvn, VM sn]
+  genVM (SubroutineCall sc) = genVM sc
   genVM (Op s) = cmds "%s\n" [VM s]
 
 postOrderExpr :: Tree Term -> SymbolTableState String
@@ -121,3 +126,8 @@ instance VMGen Statement where
     v <- genVM vn
     e <- genVM expr
     return $ e <> "pop " <> v
+
+  genVM (Do subCall) = genVM subCall
+
+  -- to get around Non-exhaustive patterns while testing
+  genVM _ = undefined
