@@ -34,16 +34,6 @@ cmds fStr elms = do
   s <- S.get
   return $ printfA fStr $ map (P . (\(VM e) -> S.evalState (genVM e) s)) elms
 
-evalExpr :: Expr -> SymbolTableState String
-evalExpr (Expr expr) = do
-  s <- S.get
-  return $ S.evalState (postOrderExpr expr) s
-
-evalExprs :: [Expr] -> SymbolTableState String
-evalExprs exprs = do
-  s <- S.get
-  return $ concat $ S.evalState (mapM genVM exprs) s
-
 lookupSym :: VarName -> SymbolTableState (Maybe SymbolInfo)
 lookupSym vn = do
   s <- S.get
@@ -86,19 +76,13 @@ instance VMGen Term where
   genVM (KeywordConstant k) = return $ printf "push %s\n" k
   genVM (VarName vn) = cmds "push %s " [VM vn]
   genVM (UnaryOp op t) = cmds "%s\n %s\n" [VM t, VM op]
-  genVM (VarNameExpr vn expr) = do
-    e <- evalExpr expr
-    call <- cmds "call %s\n" [VM vn]
-    return $ e <> call
-  genVM (ParenExpr expr) = evalExpr expr
-  genVM (SubroutineCall (SubCallName sn exprs)) = do
-    es <- evalExprs exprs
-    call <- cmds "call %s\n" [VM sn]
-    return $ es <> call
-  genVM (SubroutineCall (SubCallClassOrVar cvn sn exprs)) = do
-    es <- evalExprs exprs
-    call <- cmds "call %s.%s" [VM cvn, VM sn]
-    return $ es <> call
+  genVM (VarNameExpr vn expr) =
+    (++) <$> genVM expr <*> cmds "call %s\n" [VM vn]
+  genVM (ParenExpr expr) = genVM expr
+  genVM (SubroutineCall (SubCallName sn exprs)) =
+    (++) <$> genVM exprs <*> cmds "call %s\n" [VM sn]
+  genVM (SubroutineCall (SubCallClassOrVar cvn sn exprs)) =
+    (++) <$> genVM exprs <*> cmds "call %s.%s" [VM cvn, VM sn]
   genVM (Op s) = cmds "%s\n" [VM s]
 
 postOrderExpr :: Tree Term -> SymbolTableState String
@@ -129,11 +113,11 @@ instance VMGen LetVarName where
     -- TODO: this is behavior is wrong, fix when you learn how
     -- to handle array access
     v <- genVM vn
-    e <- evalExpr expr
+    e <- genVM expr
     return $ e <> "pop " <> v
 
 instance VMGen Statement where
   genVM (Let vn expr) = do
     v <- genVM vn
-    e <- evalExpr expr
+    e <- genVM expr
     return $ e <> "pop " <> v
