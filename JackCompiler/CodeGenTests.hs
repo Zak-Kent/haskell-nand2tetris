@@ -128,6 +128,25 @@ tDoSubCallStatementCG =
              $ evalVM
              $ tryParse statementP "do foo.bar(1, 2);")
 
+tReturnNoExprCG =
+  TestCase (assertEqual "return"
+            (Just "return")
+            $ fmap joinTags
+            $ evalVM
+            $ tryParse statementP "return;")
+
+tReturnWithExprCG =
+  TestCase (assertEqual "return 5 * 5;"
+            (Just
+             (joinTags
+              "push 5 \
+             \ push 5 \
+             \ * \
+             \ return"))
+            $ fmap joinTags
+            $ evalVM
+            $ tryParse statementP "return 5 * 5;")
+
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
             TestLabel "(4 + 2) - 8 + (3 * (2 + 1))" tExprWithParens,
@@ -137,7 +156,9 @@ statementTests =
   TestList [TestLabel "let x = 5;" tLetStatementCG,
             TestLabel "let g = 3 + 5;" tLetStatementWExprCG,
             TestLabel "let y[0] = 3;" tLetStatementVarNameExprCG,
-            TestLabel"do foo.bar(1, 2);" tDoSubCallStatementCG]
+            TestLabel "do foo.bar(1, 2);" tDoSubCallStatementCG,
+            TestLabel "return;" tReturnNoExprCG,
+            TestLabel "return 5 * 5;" tReturnWithExprCG]
 
 runVMGenTests :: Test
 runVMGenTests =

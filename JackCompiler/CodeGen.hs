@@ -129,5 +129,11 @@ instance VMGen Statement where
 
   genVM (Do subCall) = genVM subCall
 
+  genVM (Return maybeExpr) =
+    let mExpr = case maybeExpr of
+          (Just expr) -> genVM expr
+          Nothing -> pure ""
+    in (++) <$> mExpr <*> pure "return"
+
   -- to get around Non-exhaustive patterns while testing
   genVM _ = undefined
