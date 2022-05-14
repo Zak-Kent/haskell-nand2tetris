@@ -160,7 +160,7 @@ tIfStatementNoElseCG =
              \ + \
              \ push 3 \
              \ = \
-             \ not \
+             \ push not \
              \ if-goto L1 \
              \ push 6 \
              \ pop argument 1 \
@@ -176,17 +176,32 @@ tIfStatementElseCG =
             (Just
              (joinTags
               "push false \
-              \ not \
-              \ if-goto L1 \
-              \ push 2 \
-              \ pop field 0 \
-              \ goto L2 \
-              \ label L1 \
-              \ call foo.bar \
-              \ label L2"))
+             \ push not \
+             \ if-goto L1 \
+             \ push 2 \
+             \ pop field 0 \
+             \ goto L2 \
+             \ label L1 \
+             \ call foo.bar \
+             \ label L2"))
             $ fmap joinTags
             $ evalVM
             $ tryParse statementP "if (false) {let g = 2;} else {do foo.bar();} ")
+
+tWhileStatementCG =
+  TestCase (assertEqual "{while (true) {do bar.baz();}}"
+            (Just
+             (joinTags
+              "label L1 \
+             \ push true \
+             \ push not \
+             \ if-goto L2 \
+             \ call bar.baz \
+             \ goto L1 \
+             \ label L2"))
+            $ fmap joinTags
+            $ evalVM
+            $ tryParse statementP "while (true) {do bar.baz();}")
 
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
@@ -201,7 +216,8 @@ statementTests =
             TestLabel "return;" tReturnNoExprCG,
             TestLabel "return 5 * 5;" tReturnWithExprCG,
             TestLabel "if ((1 + 2) = 3) {let x = 6;}" tIfStatementNoElseCG,
-            TestLabel "if with else" tIfStatementElseCG]
+            TestLabel "if with else" tIfStatementElseCG,
+            TestLabel "{while (true) {do bar.baz();}}" tWhileStatementCG]
 
 runVMGenTests :: Test
 runVMGenTests =

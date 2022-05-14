@@ -117,7 +117,7 @@ instance VMGen Statement where
       let l1 = labelC + 1; l2 = labelC + 2
       genCmds [
         genVM expr,
-        pure "not\n",
+        pure "push not\n",
         pure $ printf "if-goto L%d\n" l1,
         genVM stmts,
         pure $ printf "goto L%d\n" l2,
@@ -126,4 +126,16 @@ instance VMGen Statement where
         pure $ printf "label L%d\n" l2
         ]
 
-  genVM _ = undefined
+  genVM (While expr stmts) = do
+    (clsSyms, subSyms, labelC) <- S.get
+    S.put (clsSyms, subSyms, (labelC + 2))
+    let l1 = labelC + 1; l2 = labelC + 2
+    genCmds [
+      pure $ printf "label L%d\n" l1,
+      genVM expr,
+      pure "push not\n",
+      pure $ printf "if-goto L%d\n" l2,
+      genVM stmts,
+      pure $ printf "goto L%d\n" l1,
+      pure $ printf "label L%d\n" l2
+      ]
