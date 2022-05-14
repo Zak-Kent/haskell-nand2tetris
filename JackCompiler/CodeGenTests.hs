@@ -34,7 +34,7 @@ classSymT = M.fromList [(Identifier "g",
 evalVM :: (VMGen a) => Maybe a -> Maybe String
 evalVM Nothing = Nothing
 evalVM (Just vm) =
-  Just $ S.evalState (genVM vm) (classSymT, localSymT)
+  Just $ S.evalState (genVM vm) (classSymT, localSymT, 0)
 
 tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
                         (Just
@@ -147,6 +147,47 @@ tReturnWithExprCG =
             $ evalVM
             $ tryParse statementP "return 5 * 5;")
 
+tIfStatementNoElseCG =
+  TestCase (assertEqual "if ((1 + 2) = 3) {let x = 6;}"
+           {- Note the parens needed around (1 + 2) this is due to no
+              operator precedence in the Jack language and the compiler's
+              expression evaluation going from right to left which the
+              course spec says is ok -}
+            (Just
+             (joinTags
+              "push 1 \
+             \ push 2 \
+             \ + \
+             \ push 3 \
+             \ = \
+             \ not \
+             \ if-goto L1 \
+             \ push 6 \
+             \ pop argument 1 \
+             \ goto L2 \
+             \ label L1 \
+             \ label L2"))
+            $ fmap joinTags
+            $ evalVM
+            $ tryParse statementP "if ((1 + 2) = 3) {let x = 6;}")
+
+tIfStatementElseCG =
+  TestCase (assertEqual "if (false) {let g = 2;} else {do foo.bar();} "
+            (Just
+             (joinTags
+              "push false \
+              \ not \
+              \ if-goto L1 \
+              \ push 2 \
+              \ pop field 0 \
+              \ goto L2 \
+              \ label L1 \
+              \ call foo.bar \
+              \ label L2"))
+            $ fmap joinTags
+            $ evalVM
+            $ tryParse statementP "if (false) {let g = 2;} else {do foo.bar();} ")
+
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
             TestLabel "(4 + 2) - 8 + (3 * (2 + 1))" tExprWithParens,
@@ -158,7 +199,9 @@ statementTests =
             TestLabel "let y[0] = 3;" tLetStatementVarNameExprCG,
             TestLabel "do foo.bar(1, 2);" tDoSubCallStatementCG,
             TestLabel "return;" tReturnNoExprCG,
-            TestLabel "return 5 * 5;" tReturnWithExprCG]
+            TestLabel "return 5 * 5;" tReturnWithExprCG,
+            TestLabel "if ((1 + 2) = 3) {let x = 6;}" tIfStatementNoElseCG,
+            TestLabel "if with else" tIfStatementElseCG]
 
 runVMGenTests :: Test
 runVMGenTests =

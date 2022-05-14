@@ -9,9 +9,10 @@ import AST
 import SymbolTable
 
 type SymTable = M.Map VarName SymbolInfo
+type LabelCount = Int -- used to generate unique labels in flow control
 -- the two symbols tables needed at any given point in compilation
 -- (<class symbol table>, <subroutine symbol table>)
-type SymbolTableState = S.State (SymTable, SymTable)
+type SymbolTableState = S.State (SymTable, SymTable, LabelCount)
 
 -- wrapper trick to get a list of heterogeneous items as args
 data VM = forall a . (VMGen a) => VM a
@@ -38,7 +39,7 @@ lookupSym :: VarName -> SymbolTableState (Maybe SymbolInfo)
 lookupSym vn = do
   s <- S.get
   return $ checkVal vn s
-  where checkVal v (clsSyms, localSyms) =
+  where checkVal v (clsSyms, localSyms, _) =
           case M.lookup v localSyms of
             (Just symI) -> (Just symI)
             Nothing -> case M.lookup v clsSyms of
@@ -121,6 +122,14 @@ instance VMGen LetVarName where
     e <- genVM expr
     return $ e <> "pop " <> v
 
+instance VMGen [Statement] where
+  genVM stmts = do
+    s <- S.get
+    return $ concat $ S.evalState (mapM genVM stmts) s
+
+instance VMGen Else where
+  genVM (Else stmts) = genVM stmts
+
 instance VMGen Statement where
   genVM (Let vn expr) = do
     v <- genVM vn
@@ -134,6 +143,26 @@ instance VMGen Statement where
           (Just expr) -> genVM expr
           Nothing -> pure ""
     in (++) <$> mExpr <*> pure "return"
+
+  genVM (If expr stmts maybeStmts) = do
+      (clsSyms, subSyms, labelC) <- S.get
+      S.put (clsSyms, subSyms, (labelC + 2))
+      let l1 = labelC + 1; l2 = labelC + 2
+
+      expr' <- genVM expr
+      stmts' <- genVM stmts
+      elseStmts <- checkElse maybeStmts
+      return $ expr'
+        ++ "not\n"
+        ++ printf "if-goto L%d" l1
+        ++ stmts'
+        ++ printf "goto L%d" l2
+        ++ printf "label L%d" l1
+        ++ elseStmts
+        ++ printf "label L%d" l2
+      where checkElse ms = case ms of
+              Just e -> genVM e
+              Nothing -> pure ""
 
   -- to get around Non-exhaustive patterns while testing
   genVM _ = undefined
