@@ -14,26 +14,12 @@ type LabelCount = Int -- used to generate unique labels in flow control
 -- (<class symbol table>, <subroutine symbol table>)
 type SymbolTableState = S.State (SymTable, SymTable, LabelCount)
 
--- wrapper trick to get a list of heterogeneous items as args
-data VM = forall a . (VMGen a) => VM a
-data P = forall a. PrintfArg a => P a
+genMaybeCmd :: (VMGen a) => Maybe a -> SymbolTableState String
+genMaybeCmd Nothing = pure ""
+genMaybeCmd (Just cmd) = genVM cmd
 
-printfA :: PrintfType t => String -> [P] -> t
--- need to reverse incoming list of args due to destructuring order below
-printfA fmt args = printfA' fmt $ reverse args
-  where printfA' :: PrintfType t => String -> [P] -> t
-        printfA' _ [] = printf fmt
-        -- this creates an expression like: printf fmt x x x where
-        -- the x(s) are then applied to printf like multiple args
-        printfA' _ (P x:xs) = (printfA' fmt xs) x
-
-cmds :: String -> [VM] -> SymbolTableState String
-cmds fStr elms = do
-  -- get state in order to evaluate the genVM call so a
-  -- string can be produced for printf, then wrap this
-  -- value back up in the state and pass it along
-  s <- S.get
-  return $ printfA fStr $ map (P . (\(VM e) -> S.evalState (genVM e) s)) elms
+genCmds :: [SymbolTableState String] -> SymbolTableState String
+genCmds cmds = fmap concat $ sequence cmds
 
 lookupSym :: VarName -> SymbolTableState (Maybe SymbolInfo)
 lookupSym vn = do
@@ -77,92 +63,67 @@ instance VMGen SubCall where
   genVM (SubCallName (Identifier sn) exprs) =
     (++) <$> genVM exprs <*> (pure $ printf "call %s\n" sn)
   genVM (SubCallClassOrVar (Identifier cvn) (Identifier sn) exprs) =
-    (++) <$> genVM exprs <*> (pure $ printf "call %s.%s" cvn sn)
+    (++) <$> genVM exprs <*> (pure $ printf "call %s.%s\n" cvn sn)
 
 instance VMGen Term where
   genVM (IntegerConstant i) = return $ printf "push %d\n" i
   genVM (StringConstant s) = return $ printf "push %s\n" s
   genVM (KeywordConstant k) = return $ printf "push %s\n" k
-  genVM (VarName vn) = cmds "push %s " [VM vn]
-  genVM (UnaryOp op t) = cmds "%s\n %s\n" [VM t, VM op]
+  genVM (VarName vn) = genCmds [pure "push ", genVM vn]
+  genVM (UnaryOp op t) = genCmds [genVM t, genVM op]
   genVM (VarNameExpr vn expr) =
-    (++) <$> genVM expr <*> cmds "call %s\n" [VM vn]
+    (++) <$> genVM expr <*> genCmds [pure "call ", genVM vn]
   genVM (ParenExpr expr) = genVM expr
   genVM (SubroutineCall sc) = genVM sc
-  genVM (Op s) = cmds "%s\n" [VM s]
+  genVM (Op s) = genVM s
 
 postOrderExpr :: Tree Term -> SymbolTableState String
 postOrderExpr (Leaf t) = genVM t
-postOrderExpr (Node lb op rb) = do
-  s <- S.get
-  lb' <- evalBranch lb s
-  rb' <- evalBranch rb s
-  op' <- (genVM op)
-  return $ lb' <> rb' <> op'
-  where evalBranch b s = do
-          return $ (S.evalState (postOrderExpr b) s)
+postOrderExpr (Node lb op rb) =
+  genCmds [postOrderExpr lb, postOrderExpr rb, genVM op]
 
 instance VMGen Expr where
-  genVM (Expr expr) = do
-    s <- S.get
-    return $ S.evalState (postOrderExpr expr) s
+  genVM (Expr expr) = postOrderExpr expr
 
 instance VMGen [Expr] where
   -- TODO: double check if you need to add \n between the lists here
-  genVM exprs = do
-    s <- S.get
-    return $ concat $ S.evalState (mapM genVM exprs) s
+  genVM exprs = genCmds $ map genVM exprs
 
 instance VMGen LetVarName where
   genVM (LetVarName vn) = genVM vn
-  genVM (LetVarNameExpr vn expr) = do
+  genVM (LetVarNameExpr vn expr) =
     -- TODO: this is behavior is wrong, fix when you learn how
     -- to handle array access
-    v <- genVM vn
-    e <- genVM expr
-    return $ e <> "pop " <> v
+    genCmds [genVM expr, pure "pop ", genVM vn]
 
 instance VMGen [Statement] where
-  genVM stmts = do
-    s <- S.get
-    return $ concat $ S.evalState (mapM genVM stmts) s
+  genVM stmts = genCmds $ map genVM stmts
 
 instance VMGen Else where
   genVM (Else stmts) = genVM stmts
 
 instance VMGen Statement where
-  genVM (Let vn expr) = do
-    v <- genVM vn
-    e <- genVM expr
-    return $ e <> "pop " <> v
+  genVM (Let vn expr) =
+    genCmds [genVM expr, pure "pop ", genVM vn]
 
   genVM (Do subCall) = genVM subCall
 
   genVM (Return maybeExpr) =
-    let mExpr = case maybeExpr of
-          (Just expr) -> genVM expr
-          Nothing -> pure ""
-    in (++) <$> mExpr <*> pure "return"
+    genCmds [genMaybeCmd maybeExpr, pure "return\n"]
 
   genVM (If expr stmts maybeStmts) = do
       (clsSyms, subSyms, labelC) <- S.get
       S.put (clsSyms, subSyms, (labelC + 2))
       let l1 = labelC + 1; l2 = labelC + 2
+      genCmds [
+        genVM expr,
+        pure "not\n",
+        pure $ printf "if-goto L%d\n" l1,
+        genVM stmts,
+        pure $ printf "goto L%d\n" l2,
+        pure $ printf "label L%d\n" l1,
+        genMaybeCmd maybeStmts,
+        pure $ printf "label L%d\n" l2
+        ]
 
-      expr' <- genVM expr
-      stmts' <- genVM stmts
-      elseStmts <- checkElse maybeStmts
-      return $ expr'
-        ++ "not\n"
-        ++ printf "if-goto L%d" l1
-        ++ stmts'
-        ++ printf "goto L%d" l2
-        ++ printf "label L%d" l1
-        ++ elseStmts
-        ++ printf "label L%d" l2
-      where checkElse ms = case ms of
-              Just e -> genVM e
-              Nothing -> pure ""
-
-  -- to get around Non-exhaustive patterns while testing
   genVM _ = undefined
