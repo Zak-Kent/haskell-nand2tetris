@@ -46,15 +46,13 @@ instance VMGen Keyword where
   genVM (Keyword k) = return k
 
 instance VMGen Identifier where
-  genVM i = do
+  genVM i@(Identifier idf) = do
     symI <- lookupSym i
     return $ symCmd symI
       where symCmd si =
               case si of
-                -- TODO: add better error reporting
-                -- This will cause the VM commands to pop but,
-                -- you could pop out of code gen when this happens
-                Nothing -> "error: symbol not found"
+                Nothing -> error
+                  $ printf "error: '%s' not found in symbol tables" idf
                 (Just s) -> genSymCmd s
 
 instance VMGen SubCall where
