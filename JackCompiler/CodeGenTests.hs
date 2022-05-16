@@ -36,6 +36,12 @@ evalVM Nothing = Nothing
 evalVM (Just vm) =
   Just $ S.evalState (genVM vm) (classSymT, localSymT, 0)
 
+checkSymTables ::  (VMGen a) => Maybe a -> Maybe (SymTable, SymTable)
+checkSymTables Nothing = Nothing
+checkSymTables (Just vm) =
+    let (clsSyms, subSyms, _) = S.execState (genVM vm) (M.empty, M.empty, 0)
+    in Just (clsSyms, subSyms)
+
 tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
                         (Just
                          (joinTags
@@ -203,6 +209,13 @@ tWhileStatementCG =
             $ evalVM
             $ tryParse statementP "while (true) {do bar.baz();}")
 
+tSingleVarDecSymTableUpdate =
+  TestCase (assertEqual "Single VarDec updates subroutine symbol table"
+            (Just 2)
+            $ fmap (\(clsS, subS) -> length $ M.keys subS)
+            $ checkSymTables
+            $ tryParse varDecP "var int foo, bar;")
+
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
             TestLabel "(4 + 2) - 8 + (3 * (2 + 1))" tExprWithParens,
@@ -219,7 +232,12 @@ statementTests =
             TestLabel "if with else" tIfStatementElseCG,
             TestLabel "{while (true) {do bar.baz();}}" tWhileStatementCG]
 
+symbolTableUpdateTests =
+  TestList [TestLabel "single VarDec update" tSingleVarDecSymTableUpdate]
+
 runVMGenTests :: Test
 runVMGenTests =
   TestList
-  $ concat $ [l | (TestList l) <- [exprTests, statementTests]]
+  $ concat $ [l | (TestList l) <- [exprTests,
+                                   statementTests,
+                                   symbolTableUpdateTests]]

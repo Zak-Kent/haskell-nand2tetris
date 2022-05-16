@@ -137,3 +137,38 @@ instance VMGen Statement where
       pure $ printf "goto L%d\n" l1,
       pure $ printf "label L%d\n" l2
       ]
+
+instance VMGen Type where
+  genVM (TKeyword kw) = genVM kw
+  genVM (TIdentifier i) = genVM i
+
+addSyms :: [(VarName, SymbolInfo)] -> SymTable -> SymTable
+addSyms syms symTb =
+  foldr insert symTb syms
+  where insert (v, si) m = M.insert v si m
+
+instance VMGen VarDec where
+  {-
+   VarDec blocks are only encountered in subroutines after any parameters for
+   the subroutine have already been added to the subroutine SymbolTable. Any
+   symbols encountered at this level are of kind 'local'. This function calcs
+   the occurence based on any existing 'local' symbols created by other VarDecs
+   and creates an entry for the symbols. No VM code is produced for VarDecs, only
+   the subroutine SymbolTable state is updated. Clearing out the subroutine
+   SymbolTable is handled one level up in ParameterList.
+  -}
+  genVM (VarDec tp vn vns) = do
+    (clsSyms, subSyms, labelC) <- S.get
+    let newSubSyms = addSyms (newSyms subSyms) subSyms
+    S.put (clsSyms, newSubSyms, labelC)
+    return ""
+    where newSyms subS = map symInfo $ zip (vn:vns) [(occCount subS)..]
+          symInfo (v, oc) = (v,
+                             SymbolInfo {typ = tp,
+                                         kind = Keyword "local",
+                                         occurrence = oc})
+          occCount subS = length $ M.keys $ M.filter localOnly subS
+          localOnly SymbolInfo{kind=k} = Keyword "local" == k
+
+instance VMGen [VarDec] where
+  genVM varDecs = genCmds $ map genVM varDecs
