@@ -155,7 +155,7 @@ instance VMGen VarDec where
    the occurence based on any existing 'local' symbols created by other VarDecs
    and creates an entry for the symbols. No VM code is produced for VarDecs, only
    the subroutine SymbolTable state is updated. Clearing out the subroutine
-   SymbolTable is handled one level up in ParameterList.
+   SymbolTable is handled a couple levels up in SubroutineDec.
   -}
   genVM (VarDec tp vn vns) = do
     (clsSyms, subSyms, labelC) <- S.get
@@ -172,3 +172,26 @@ instance VMGen VarDec where
 
 instance VMGen [VarDec] where
   genVM varDecs = genCmds $ map genVM varDecs
+
+instance VMGen SubroutineBody where
+  genVM (SubroutineBody varDecs stmts) = genCmds [genVM varDecs, genVM stmts]
+
+instance VMGen ParameterList where
+  genVM (ParameterList params) = do
+    {-
+     Every item in a parameter list is of kind 'argument'. It's possible
+     in the case of a Jack method that an entry for 'this' may already be
+     in the subroutine symbol table, this is accounted for by counting the
+     keys below. Clearing of the symbol table is handled one level above in
+     SubroutineDec.
+    -}
+    (clsSyms, subSyms, labelC) <- S.get
+    let newSubSyms = addSyms (newSyms subSyms) subSyms
+    S.put (clsSyms, newSubSyms, labelC)
+    return ""
+    where newSyms subS = map symInfo $ zip params [(occCount subS)..]
+          symInfo ((tp, vn), oc) = (vn,
+                                    SymbolInfo {typ = tp,
+                                                kind = Keyword "argument",
+                                                occurrence = oc})
+          occCount subS = length $ M.keys subS

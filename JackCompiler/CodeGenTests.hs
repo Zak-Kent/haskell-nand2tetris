@@ -216,6 +216,13 @@ tSingleVarDecSymTableUpdate =
             $ checkSymTables
             $ tryParse varDecP "var int foo, bar;")
 
+tParamListSymTableUpdate =
+  TestCase (assertEqual "ParameterList updates symbol table"
+            (Just 3)
+            $ fmap (\(clsS, subS) -> length $ M.keys subS)
+            $ checkSymTables
+            $ tryParse paramListP "int foo, boolean bar, classFoo baz")
+
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
             TestLabel "(4 + 2) - 8 + (3 * (2 + 1))" tExprWithParens,
@@ -233,7 +240,8 @@ statementTests =
             TestLabel "{while (true) {do bar.baz();}}" tWhileStatementCG]
 
 symbolTableUpdateTests =
-  TestList [TestLabel "single VarDec update" tSingleVarDecSymTableUpdate]
+  TestList [TestLabel "single VarDec update" tSingleVarDecSymTableUpdate,
+            TestLabel "param list update" tParamListSymTableUpdate]
 
 runVMGenTests :: Test
 runVMGenTests =
