@@ -34,12 +34,13 @@ classSymT = M.fromList [(Identifier "g",
 evalVM :: (VMGen a) => Maybe a -> Maybe String
 evalVM Nothing = Nothing
 evalVM (Just vm) =
-  Just $ S.evalState (genVM vm) (classSymT, localSymT, 0)
+  Just $ S.evalState (genVM vm) (classSymT, localSymT, 0, "Foo")
 
 checkSymTables ::  (VMGen a) => Maybe a -> Maybe (SymTable, SymTable)
 checkSymTables Nothing = Nothing
 checkSymTables (Just vm) =
-    let (clsSyms, subSyms, _) = S.execState (genVM vm) (M.empty, M.empty, 0)
+    let (clsSyms, subSyms, _, _) =
+          S.execState (genVM vm) (M.empty, M.empty, 0, "Foo")
     in Just (clsSyms, subSyms)
 
 tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"

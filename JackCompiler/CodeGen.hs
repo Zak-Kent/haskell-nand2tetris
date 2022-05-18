@@ -10,9 +10,10 @@ import SymbolTable
 
 type SymTable = M.Map VarName SymbolInfo
 type LabelCount = Int -- used to generate unique labels in flow control
+type ClassName = String
 -- the two symbols tables needed at any given point in compilation
 -- (<class symbol table>, <subroutine symbol table>)
-type SymbolTableState = S.State (SymTable, SymTable, LabelCount)
+type SymbolTableState = S.State (SymTable, SymTable, LabelCount, ClassName)
 
 genMaybeCmd :: (VMGen a) => Maybe a -> SymbolTableState String
 genMaybeCmd Nothing = pure ""
@@ -25,7 +26,7 @@ lookupSym :: VarName -> SymbolTableState (Maybe SymbolInfo)
 lookupSym vn = do
   s <- S.get
   return $ checkVal vn s
-  where checkVal v (clsSyms, localSyms, _) =
+  where checkVal v (clsSyms, localSyms, _, _) =
           case M.lookup v localSyms of
             (Just symI) -> (Just symI)
             Nothing -> case M.lookup v clsSyms of
@@ -110,8 +111,8 @@ instance VMGen Statement where
     genCmds [genMaybeCmd maybeExpr, pure "return\n"]
 
   genVM (If expr stmts maybeStmts) = do
-      (clsSyms, subSyms, labelC) <- S.get
-      S.put (clsSyms, subSyms, (labelC + 2))
+      (clsSyms, subSyms, labelC, cName) <- S.get
+      S.put (clsSyms, subSyms, (labelC + 2), cName)
       let l1 = labelC + 1; l2 = labelC + 2
       genCmds [
         genVM expr,
@@ -125,8 +126,8 @@ instance VMGen Statement where
         ]
 
   genVM (While expr stmts) = do
-    (clsSyms, subSyms, labelC) <- S.get
-    S.put (clsSyms, subSyms, (labelC + 2))
+    (clsSyms, subSyms, labelC, cName) <- S.get
+    S.put (clsSyms, subSyms, (labelC + 2), cName)
     let l1 = labelC + 1; l2 = labelC + 2
     genCmds [
       pure $ printf "label L%d\n" l1,
@@ -158,9 +159,9 @@ instance VMGen VarDec where
    SymbolTable is handled a couple levels up in SubroutineDec.
   -}
   genVM (VarDec tp vn vns) = do
-    (clsSyms, subSyms, labelC) <- S.get
+    (clsSyms, subSyms, labelC, cName) <- S.get
     let newSubSyms = addSyms (newSyms subSyms) subSyms
-    S.put (clsSyms, newSubSyms, labelC)
+    S.put (clsSyms, newSubSyms, labelC, cName)
     return ""
     where newSyms subS = map symInfo $ zip (vn:vns) [(occCount subS)..]
           symInfo (v, oc) = (v,
@@ -185,9 +186,9 @@ instance VMGen ParameterList where
      keys below. Clearing of the symbol table is handled one level above in
      SubroutineDec.
     -}
-    (clsSyms, subSyms, labelC) <- S.get
+    (clsSyms, subSyms, labelC, cName) <- S.get
     let newSubSyms = addSyms (newSyms subSyms) subSyms
-    S.put (clsSyms, newSubSyms, labelC)
+    S.put (clsSyms, newSubSyms, labelC, cName)
     return ""
     where newSyms subS = map symInfo $ zip params [(occCount subS)..]
           symInfo ((tp, vn), oc) = (vn,
