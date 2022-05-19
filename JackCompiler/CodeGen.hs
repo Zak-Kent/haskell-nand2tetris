@@ -114,7 +114,10 @@ instance VMGen Statement where
   genVM (Do subCall) = genVM subCall
 
   genVM (Return maybeExpr) =
-    genCmds [genMaybeCmd maybeExpr, pure "return\n"]
+    -- gen of VM 'return' cmd is handled in subroutineDec because
+    -- of the special handling 'void' needs and the fact the
+    -- return type 'void' vs. not, is known at that level
+    genMaybeCmd maybeExpr
 
   genVM (If expr stmts maybeStmts) = do
       (l1, l2) <- incLabelCount
@@ -198,3 +201,47 @@ instance VMGen ParameterList where
                                                 kind = Keyword "argument",
                                                 occurrence = oc})
           occCount subS = length $ M.keys subS
+
+initSubSymTbl :: String -> SymbolTableState String
+initSubSymTbl methTyp = do
+  (clsSyms, _, labelC, cName) <- S.get
+  S.put (clsSyms, (subSyms methTyp cName), labelC, cName)
+  return ""
+  where subSyms mt cn = case mt of
+          "method" ->
+            M.fromList [((Identifier "this"),
+                          SymbolInfo {typ = (TIdentifier
+                                             (Identifier cn)) ,
+                                      kind = Keyword "argument",
+                                      occurrence = 0})]
+          _ -> M.empty
+
+genVMFuncDec :: Identifier -> SymbolTableState String
+genVMFuncDec (Identifier subName) = do
+  (_, subSyms, _, cName) <- S.get
+  return $ printf "function %s.%s %d " cName subName
+    $ length $ M.keys subSyms
+
+genReturn :: Type -> String
+genReturn (TKeyword (Keyword "void")) = "push constant 0\nreturn\n"
+genReturn _ = "return\n"
+
+instance VMGen SubroutineDec where
+  genVM (SubroutineDec (Keyword "method") tp sn params sb) = do
+    _ <- initSubSymTbl "method"
+    body <- genCmds [genVM params, genVM sb]
+    funcDec <- genVMFuncDec sn
+    return $ funcDec ++ body ++ genReturn tp
+
+  genVM (SubroutineDec (Keyword "constructor") typ sn params sb) = do
+    _ <- initSubSymTbl "constructor"
+    return ""
+
+  genVM (SubroutineDec (Keyword "function") tp sn params sb) = do
+    _ <- initSubSymTbl "function"
+    -- order matters here, body needs to be calculated first because
+    -- the genVM calls below this level populate the symbol table which
+    -- is needed to get the number of fields for the VM function declaration
+    body <- genCmds [genVM params, genVM sb]
+    funcDec <- genVMFuncDec sn
+    return $ funcDec ++ body ++ genReturn tp

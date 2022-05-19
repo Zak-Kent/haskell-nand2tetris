@@ -43,6 +43,11 @@ checkSymTables (Just vm) =
           S.execState (genVM vm) (M.empty, M.empty, 0, "Foo")
     in Just (clsSyms, subSyms)
 
+evalVMEmptyState :: (VMGen a) => Maybe a -> Maybe String
+evalVMEmptyState Nothing = Nothing
+evalVMEmptyState (Just vm) =
+  Just $ S.evalState (genVM vm) (M.empty, M.empty, 0, "Foo")
+
 tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
                         (Just
                          (joinTags
@@ -137,7 +142,7 @@ tDoSubCallStatementCG =
 
 tReturnNoExprCG =
   TestCase (assertEqual "return"
-            (Just "return")
+            (Just "")
             $ fmap joinTags
             $ evalVM
             $ tryParse statementP "return;")
@@ -148,8 +153,7 @@ tReturnWithExprCG =
              (joinTags
               "push constant 5 \
              \ push constant 5 \
-             \ * \
-             \ return"))
+             \ * "))
             $ fmap joinTags
             $ evalVM
             $ tryParse statementP "return 5 * 5;")
@@ -224,6 +228,37 @@ tParamListSymTableUpdate =
             $ checkSymTables
             $ tryParse paramListP "int foo, boolean bar, classFoo baz")
 
+tSimpleVoidFunc =
+  TestCase (assertEqual "Simple void function"
+            (Just
+             (joinTags
+             "function Foo.bar 2 \
+            \ push constant 5 \
+            \ pop local 0 \
+            \ push constant 0 \
+            \ return"))
+            $ fmap joinTags
+            $ evalVMEmptyState
+            $ tryParse subroutineDecP "function void bar () \
+                                      \  {var int foo, baz; \
+                                      \   let foo = 5; \
+                                      \   return;}")
+
+tSimpleIntReturnFunc =
+  TestCase (assertEqual "Simple int return function"
+            (Just
+             (joinTags
+              "function Foo.bar 3 \
+            \ push constant 10 \
+            \ pop local 2 \
+            \ push local 2 \
+            \ return"))
+            $ fmap joinTags
+            $ evalVMEmptyState
+            $ tryParse subroutineDecP "function int bar () \
+                                      \  {var int baz, biz, foo; \
+                                      \   let foo = 10; \
+                                      \   return foo;}")
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
             TestLabel "(4 + 2) - 8 + (3 * (2 + 1))" tExprWithParens,
@@ -244,9 +279,14 @@ symbolTableUpdateTests =
   TestList [TestLabel "single VarDec update" tSingleVarDecSymTableUpdate,
             TestLabel "param list update" tParamListSymTableUpdate]
 
+subroutineDeclartaionTests =
+  TestList [TestLabel "Simple void function" tSimpleVoidFunc,
+            TestLabel "Simple Int return func" tSimpleIntReturnFunc]
+
 runVMGenTests :: Test
 runVMGenTests =
   TestList
   $ concat $ [l | (TestList l) <- [exprTests,
                                    statementTests,
-                                   symbolTableUpdateTests]]
+                                   symbolTableUpdateTests,
+                                   subroutineDeclartaionTests]]
