@@ -101,6 +101,12 @@ instance VMGen [Statement] where
 instance VMGen Else where
   genVM (Else stmts) = genVM stmts
 
+incLabelCount :: SymbolTableState (Int, Int)
+incLabelCount = do
+  (clsSyms, subSyms, labelCount, cName) <- S.get
+  S.put (clsSyms, subSyms, (labelCount + 2), cName)
+  return (labelCount + 1, labelCount + 2)
+
 instance VMGen Statement where
   genVM (Let vn expr) =
     genCmds [genVM expr, pure "pop ", genVM vn]
@@ -111,9 +117,7 @@ instance VMGen Statement where
     genCmds [genMaybeCmd maybeExpr, pure "return\n"]
 
   genVM (If expr stmts maybeStmts) = do
-      (clsSyms, subSyms, labelC, cName) <- S.get
-      S.put (clsSyms, subSyms, (labelC + 2), cName)
-      let l1 = labelC + 1; l2 = labelC + 2
+      (l1, l2) <- incLabelCount
       genCmds [
         genVM expr,
         pure "push not\n",
@@ -126,9 +130,7 @@ instance VMGen Statement where
         ]
 
   genVM (While expr stmts) = do
-    (clsSyms, subSyms, labelC, cName) <- S.get
-    S.put (clsSyms, subSyms, (labelC + 2), cName)
-    let l1 = labelC + 1; l2 = labelC + 2
+    (l1, l2) <- incLabelCount
     genCmds [
       pure $ printf "label L%d\n" l1,
       genVM expr,
