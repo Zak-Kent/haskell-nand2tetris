@@ -65,7 +65,7 @@ instance VMGen SubCall where
     (++) <$> genVM exprs <*> (pure $ printf "call %s.%s\n" cvn sn)
 
 instance VMGen Term where
-  genVM (IntegerConstant i) = return $ printf "push %d\n" i
+  genVM (IntegerConstant i) = return $ printf "push constant %d\n" i
   genVM (StringConstant s) = return $ printf "push %s\n" s
   genVM (KeywordConstant k) = return $ printf "push %s\n" k
   genVM (VarName vn) = genCmds [pure "push ", genVM vn]

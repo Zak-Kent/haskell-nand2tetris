@@ -46,9 +46,9 @@ checkSymTables (Just vm) =
 tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
                         (Just
                          (joinTags
-                          "push 5 \
-                          \push 6 \
-                          \push 7 \
+                          "push constant 5 \
+                          \push constant 6 \
+                          \push constant 7 \
                           \+ \
                           \+"))
                         $ fmap joinTags
@@ -58,13 +58,13 @@ tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
 tExprWithParens = TestCase (assertEqual "(4 + 2) - 8 + (3 * (2 + 1))"
                             (Just
                              (joinTags
-                              "push 4 \
-                             \ push 2 \
+                              "push constant 4 \
+                             \ push constant 2 \
                              \ + \
-                             \ push 8 \
-                             \ push 3 \
-                             \ push 2 \
-                             \ push 1 \
+                             \ push constant 8 \
+                             \ push constant 3 \
+                             \ push constant 2 \
+                             \ push constant 1 \
                              \ + \
                              \ * \
                              \ + \
@@ -77,12 +77,12 @@ tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
                                 (Just
                                  (joinTags
                                   "push argument 1 \
-                                 \ push 2 \
+                                 \ push constant 2 \
                                  \ push local 5 \
                                  \ push static 2 \
                                  \ - \
                                  \ call g \
-                                 \ push 5 \
+                                 \ push constant 5 \
                                  \ * \
                                  \ +"))
                                 $ fmap joinTags
@@ -92,7 +92,7 @@ tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
 tLetStatementCG = TestCase (assertEqual "let x = 5;"
                             (Just
                              (joinTags
-                              "push 5 \
+                              "push constant 5 \
                              \ pop \
                              \ argument 1"))
                            $ fmap joinTags
@@ -102,8 +102,8 @@ tLetStatementCG = TestCase (assertEqual "let x = 5;"
 tLetStatementWExprCG = TestCase (assertEqual "let g = 3 + 5;"
                                  (Just
                                   (joinTags
-                                   "push 3 \
-                                  \ push 5 \
+                                   "push constant 3 \
+                                  \ push constant 5 \
                                   \ + \
                                   \ pop field 0"))
                            $ fmap joinTags
@@ -116,9 +116,9 @@ tLetStatementVarNameExprCG =
            -- to handle array access
             (Just
              (joinTags
-              "push 3 \
+              "push constant 3 \
              \ pop \
-             \ push 0 \
+             \ push constant 0 \
              \ pop local 5"))
              $ fmap joinTags
              $ evalVM
@@ -128,8 +128,8 @@ tDoSubCallStatementCG =
   TestCase (assertEqual "do foo.bar(1, 2);"
             (Just
              (joinTags
-              "push 1 \
-             \ push 2 \
+              "push constant 1 \
+             \ push constant 2 \
              \ call foo.bar"))
              $ fmap joinTags
              $ evalVM
@@ -146,8 +146,8 @@ tReturnWithExprCG =
   TestCase (assertEqual "return 5 * 5;"
             (Just
              (joinTags
-              "push 5 \
-             \ push 5 \
+              "push constant 5 \
+             \ push constant 5 \
              \ * \
              \ return"))
             $ fmap joinTags
@@ -162,14 +162,14 @@ tIfStatementNoElseCG =
               course spec says is ok -}
             (Just
              (joinTags
-              "push 1 \
-             \ push 2 \
+              "push constant 1 \
+             \ push constant 2 \
              \ + \
-             \ push 3 \
+             \ push constant 3 \
              \ = \
              \ push not \
              \ if-goto L1 \
-             \ push 6 \
+             \ push constant 6 \
              \ pop argument 1 \
              \ goto L2 \
              \ label L1 \
@@ -185,7 +185,7 @@ tIfStatementElseCG =
               "push false \
              \ push not \
              \ if-goto L1 \
-             \ push 2 \
+             \ push constant 2 \
              \ pop field 0 \
              \ goto L2 \
              \ label L1 \
