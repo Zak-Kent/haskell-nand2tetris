@@ -246,7 +246,13 @@ instance VMGen SubroutineDec where
     _ <- initSubSymTbl "method"
     body <- genCmds [genVM params, genVM sb]
     funcDec <- genVMFuncDec sn
-    return $ funcDec ++ body ++ genReturn tp
+    return $ concat [
+      funcDec,
+      -- set 'this' which is passed as arg 0 to every method
+     "push argument 0\npop pointer 0\n",
+      body,
+      genReturn tp
+      ]
 
   genVM (SubroutineDec (Keyword "constructor") tp sn params sb) = do
     _ <- initSubSymTbl "constructor"
@@ -269,4 +275,4 @@ instance VMGen SubroutineDec where
     -- is needed to get the number of fields for the VM function declaration
     body <- genCmds [genVM params, genVM sb]
     funcDec <- genVMFuncDec sn
-    return $ funcDec ++ body ++ genReturn tp
+    return $ concat [funcDec, body, genReturn tp]

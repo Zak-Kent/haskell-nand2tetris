@@ -279,6 +279,26 @@ tConstructor =
                                       \  { let g = ax; \
                                       \   return this;}")
 
+tMethod =
+  TestCase (assertEqual "Method returning an int"
+            (Just
+             (joinTags
+              "function Foo.bar 1 \
+             \ push argument 0 \
+             \ pop pointer 0 \
+             \ push argument 1 \
+             \ push constant 5 \
+             \ + \
+             \ pop local 0 \
+             \ push local 0 \
+             \ return"))
+            $ fmap joinTags
+            $ evalVM
+            -- g is field in pre populated class sym table
+            $ tryParse subroutineDecP "method int bar(int ax) \
+                                      \  { var int foo; \
+                                      \    let foo = ax + 5; \
+                                      \    return foo;}")
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
             TestLabel "(4 + 2) - 8 + (3 * (2 + 1))" tExprWithParens,
@@ -302,7 +322,8 @@ symbolTableUpdateTests =
 subroutineDeclartaionTests =
   TestList [TestLabel "Simple void function" tSimpleVoidFunc,
             TestLabel "Simple Int return func" tSimpleIntReturnFunc,
-            TestLabel "Constructor with one class field" tConstructor]
+            TestLabel "Constructor with one class field" tConstructor,
+            TestLabel "Method returning an int" tMethod]
 
 runVMGenTests :: Test
 runVMGenTests =
