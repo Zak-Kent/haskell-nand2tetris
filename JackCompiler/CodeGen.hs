@@ -19,6 +19,12 @@ genMaybeCmd :: (VMGen a) => Maybe a -> SymbolTableState String
 genMaybeCmd Nothing = pure ""
 genMaybeCmd (Just cmd) = genVM cmd
 
+genMaybeReturn :: Maybe Expr -> SymbolTableState String
+genMaybeReturn Nothing = pure ""
+genMaybeReturn (Just (Expr (Leaf (KeywordConstant "this")))) =
+  pure "push pointer 0\n"
+genMaybeReturn (Just cmd) = genVM cmd
+
 genCmds :: [SymbolTableState String] -> SymbolTableState String
 genCmds cmds = fmap concat $ sequence cmds
 
@@ -34,8 +40,9 @@ lookupSym vn = do
               (Just symI) -> (Just symI)
 
 genSymCmd :: SymbolInfo -> String
--- TODO: figure out where push vs. pop happens depending on context
-genSymCmd (SymbolInfo _ (Keyword k) occ) = printf "%s %d\n" k occ
+-- all class fields are mapped to 'this' with an offset
+genSymCmd (SymbolInfo _ (Keyword "field") occ) = printf "this %d" occ
+genSymCmd (SymbolInfo _ (Keyword k) occ) = printf "%s %d" k occ
 
 class VMGen a where
   genVM :: a -> SymbolTableState String
@@ -117,7 +124,7 @@ instance VMGen Statement where
     -- gen of VM 'return' cmd is handled in subroutineDec because
     -- of the special handling 'void' needs and the fact the
     -- return type 'void' vs. not, is known at that level
-    genMaybeCmd maybeExpr
+    genMaybeReturn maybeExpr
 
   genVM (If expr stmts maybeStmts) = do
       (l1, l2) <- incLabelCount
@@ -173,7 +180,7 @@ instance VMGen VarDec where
                              SymbolInfo {typ = tp,
                                          kind = Keyword "local",
                                          occurrence = oc})
-          occCount subS = length $ M.keys $ M.filter localOnly subS
+          occCount subS = length $ M.filter localOnly subS
           localOnly SymbolInfo{kind=k} = Keyword "local" == k
 
 instance VMGen [VarDec] where
@@ -219,12 +226,22 @@ initSubSymTbl methTyp = do
 genVMFuncDec :: Identifier -> SymbolTableState String
 genVMFuncDec (Identifier subName) = do
   (_, subSyms, _, cName) <- S.get
+  -- ex. 'function <className>.<subName> <num local vars>'
   return $ printf "function %s.%s %d " cName subName
-    $ length $ M.keys subSyms
+    $ occCount subSyms
+    where occCount subS = length $ M.filter localOnly subS
+          localOnly SymbolInfo{kind=k} = Keyword "local" == k
 
 genReturn :: Type -> String
 genReturn (TKeyword (Keyword "void")) = "push constant 0\nreturn\n"
 genReturn _ = "return\n"
+
+classFieldCount :: SymbolTableState String
+classFieldCount = do
+  (clsSyms, _, _, _) <- S.get
+  return $ show $ occCount clsSyms
+  where occCount subS = length $ M.filter fieldOnly subS
+        fieldOnly SymbolInfo{kind=k} = Keyword "field" == k
 
 instance VMGen SubroutineDec where
   genVM (SubroutineDec (Keyword "method") tp sn params sb) = do
@@ -233,9 +250,19 @@ instance VMGen SubroutineDec where
     funcDec <- genVMFuncDec sn
     return $ funcDec ++ body ++ genReturn tp
 
-  genVM (SubroutineDec (Keyword "constructor") typ sn params sb) = do
+  genVM (SubroutineDec (Keyword "constructor") tp sn params sb) = do
     _ <- initSubSymTbl "constructor"
-    return ""
+    body <- genCmds [genVM params, genVM sb]
+    fieldCount <- classFieldCount
+    funcDec <- genVMFuncDec sn
+    return $ concat [
+      funcDec,
+      printf "push constant %s\n" fieldCount :: String,
+      "call Memory.alloc 1\n",
+      "pop pointer 0\n",
+      body,
+      genReturn tp
+      ]
 
   genVM (SubroutineDec (Keyword "function") tp sn params sb) = do
     _ <- initSubSymTbl "function"

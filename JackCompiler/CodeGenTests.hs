@@ -110,7 +110,7 @@ tLetStatementWExprCG = TestCase (assertEqual "let g = 3 + 5;"
                                    "push constant 3 \
                                   \ push constant 5 \
                                   \ + \
-                                  \ pop field 0"))
+                                  \ pop this 0"))
                            $ fmap joinTags
                            $ evalVM
                            $ tryParse statementP "let g = 3 + 5;")
@@ -190,7 +190,7 @@ tIfStatementElseCG =
              \ push not \
              \ if-goto L1 \
              \ push constant 2 \
-             \ pop field 0 \
+             \ pop this 0 \
              \ goto L2 \
              \ label L1 \
              \ call foo.bar \
@@ -259,6 +259,26 @@ tSimpleIntReturnFunc =
                                       \  {var int baz, biz, foo; \
                                       \   let foo = 10; \
                                       \   return foo;}")
+
+tConstructor =
+  TestCase (assertEqual "Constructor with one class field"
+            (Just
+             (joinTags
+              "function Foo.new 0 \
+             \ push constant 1 \
+             \ call Memory.alloc 1 \
+             \ pop pointer 0 \
+             \ push argument 0 \
+             \ pop this 0 \
+             \ push pointer 0 \
+             \ return"))
+            $ fmap joinTags
+            $ evalVM
+            -- g is field in pre populated class sym table
+            $ tryParse subroutineDecP "constructor Foo new(int ax) \
+                                      \  { let g = ax; \
+                                      \   return this;}")
+
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
             TestLabel "(4 + 2) - 8 + (3 * (2 + 1))" tExprWithParens,
@@ -281,7 +301,8 @@ symbolTableUpdateTests =
 
 subroutineDeclartaionTests =
   TestList [TestLabel "Simple void function" tSimpleVoidFunc,
-            TestLabel "Simple Int return func" tSimpleIntReturnFunc]
+            TestLabel "Simple Int return func" tSimpleIntReturnFunc,
+            TestLabel "Constructor with one class field" tConstructor]
 
 runVMGenTests :: Test
 runVMGenTests =
