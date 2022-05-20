@@ -160,6 +160,10 @@ addSyms syms symTb =
   foldr insert symTb syms
   where insert (v, si) m = M.insert v si m
 
+occCount :: Keyword -> SymTable -> Int
+occCount kw symT = length $ M.filter only symT
+  where only SymbolInfo{kind=k} = kw == k
+
 instance VMGen VarDec where
   {-
    VarDec blocks are only encountered in subroutines after any parameters for
@@ -175,13 +179,12 @@ instance VMGen VarDec where
     let newSubSyms = addSyms (newSyms subSyms) subSyms
     S.put (clsSyms, newSubSyms, labelC, cName)
     return ""
-    where newSyms subS = map symInfo $ zip (vn:vns) [(occCount subS)..]
+    where newSyms subS = map symInfo
+            $ zip (vn:vns) [(occCount (Keyword "local") subS)..]
           symInfo (v, oc) = (v,
                              SymbolInfo {typ = tp,
                                          kind = Keyword "local",
                                          occurrence = oc})
-          occCount subS = length $ M.filter localOnly subS
-          localOnly SymbolInfo{kind=k} = Keyword "local" == k
 
 instance VMGen [VarDec] where
   genVM varDecs = genCmds $ map genVM varDecs
@@ -202,12 +205,11 @@ instance VMGen ParameterList where
     let newSubSyms = addSyms (newSyms subSyms) subSyms
     S.put (clsSyms, newSubSyms, labelC, cName)
     return ""
-    where newSyms subS = map symInfo $ zip params [(occCount subS)..]
+    where newSyms subS = map symInfo $ zip params [(length subS)..]
           symInfo ((tp, vn), oc) = (vn,
                                     SymbolInfo {typ = tp,
                                                 kind = Keyword "argument",
                                                 occurrence = oc})
-          occCount subS = length $ M.keys subS
 
 initSubSymTbl :: String -> SymbolTableState String
 initSubSymTbl methTyp = do
@@ -228,9 +230,7 @@ genVMFuncDec (Identifier subName) = do
   (_, subSyms, _, cName) <- S.get
   -- ex. 'function <className>.<subName> <num local vars>'
   return $ printf "function %s.%s %d " cName subName
-    $ occCount subSyms
-    where occCount subS = length $ M.filter localOnly subS
-          localOnly SymbolInfo{kind=k} = Keyword "local" == k
+         $ occCount (Keyword "local") subSyms
 
 genReturn :: Type -> String
 genReturn (TKeyword (Keyword "void")) = "push constant 0\nreturn\n"
@@ -239,9 +239,7 @@ genReturn _ = "return\n"
 classFieldCount :: SymbolTableState String
 classFieldCount = do
   (clsSyms, _, _, _) <- S.get
-  return $ show $ occCount clsSyms
-  where occCount subS = length $ M.filter fieldOnly subS
-        fieldOnly SymbolInfo{kind=k} = Keyword "field" == k
+  return $ show $ occCount (Keyword "field") clsSyms
 
 instance VMGen SubroutineDec where
   genVM (SubroutineDec (Keyword "method") tp sn params sb) = do
