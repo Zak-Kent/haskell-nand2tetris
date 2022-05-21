@@ -155,8 +155,8 @@ instance VMGen Type where
   genVM (TKeyword kw) = genVM kw
   genVM (TIdentifier i) = genVM i
 
-addSyms :: [(VarName, SymbolInfo)] -> SymTable -> SymTable
-addSyms syms symTb =
+mergeSyms :: [(VarName, SymbolInfo)] -> SymTable -> SymTable
+mergeSyms syms symTb =
   foldr insert symTb syms
   where insert (v, si) m = M.insert v si m
 
@@ -176,7 +176,7 @@ instance VMGen VarDec where
   -}
   genVM (VarDec tp vn vns) = do
     (clsSyms, subSyms, labelC, cName) <- S.get
-    let newSubSyms = addSyms (newSyms subSyms) subSyms
+    let newSubSyms = mergeSyms (newSyms subSyms) subSyms
     S.put (clsSyms, newSubSyms, labelC, cName)
     return ""
     where newSyms subS = map symInfo
@@ -202,7 +202,7 @@ instance VMGen ParameterList where
      SubroutineDec.
     -}
     (clsSyms, subSyms, labelC, cName) <- S.get
-    let newSubSyms = addSyms (newSyms subSyms) subSyms
+    let newSubSyms = mergeSyms (newSyms subSyms) subSyms
     S.put (clsSyms, newSubSyms, labelC, cName)
     return ""
     where newSyms subS = map symInfo $ zip params [(length subS)..]
@@ -276,3 +276,27 @@ instance VMGen SubroutineDec where
     body <- genCmds [genVM params, genVM sb]
     funcDec <- genVMFuncDec sn
     return $ concat [funcDec, body, genReturn tp]
+
+instance VMGen [SubroutineDec] where
+  genVM subVarDecs = genCmds $ map genVM subVarDecs
+
+instance VMGen ClassVarDec where
+  genVM (ClassVarDec kw tp vn vns) = do
+    -- clearing out class symbol table happens one level up in Class
+    (clsSyms, subSyms, labelC, cName) <- S.get
+    let newClsSyms = mergeSyms (newSyms clsSyms) clsSyms
+    S.put (newClsSyms, subSyms, labelC, cName)
+    return ""
+    where newSyms cSyms = map symInfo $ zip (vn:vns) [(length cSyms)..]
+          symInfo (v, oc) = (v,
+                             SymbolInfo {typ = tp,
+                                         kind = kw,
+                                         occurrence = oc})
+
+instance VMGen [ClassVarDec] where
+  genVM clsVarDecs = genCmds $ map genVM clsVarDecs
+
+instance VMGen Class where
+  genVM (Class _ (Identifier clsName) clsVarDecs subDecs) = do
+    S.put (M.empty, M.empty, 0, clsName) -- init empty state
+    genCmds [genVM clsVarDecs, genVM subDecs]

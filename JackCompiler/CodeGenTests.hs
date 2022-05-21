@@ -299,6 +299,29 @@ tMethod =
                                       \  { var int foo; \
                                       \    let foo = ax + 5; \
                                       \    return foo;}")
+
+tFullClassCodeGen =
+  TestCase (assertEqual "Method returning an int"
+            (Just
+             (joinTags
+              "function Foo.baz 0 \
+             \ push argument 0 \
+             \ pop pointer 0 \
+             \ push argument 1 \
+             \ push constant 1 \
+             \ + \
+             \ pop static 0 \
+             \ push constant 0 \
+             \ return"))
+            $ fmap joinTags
+            $ evalVM
+            $ tryParse classP " class Foo { \
+                                \ static int blarg; \
+                                \ field boolean bar; \
+                                \ method void baz (int biz) \
+                                \ { let blarg = biz + 1; \
+                                \ return; }}")
+
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
             TestLabel "(4 + 2) - 8 + (3 * (2 + 1))" tExprWithParens,
@@ -325,10 +348,14 @@ subroutineDeclartaionTests =
             TestLabel "Constructor with one class field" tConstructor,
             TestLabel "Method returning an int" tMethod]
 
+classLevelCodeGen =
+  TestList [TestLabel "Full class code gen" tFullClassCodeGen]
+
 runVMGenTests :: Test
 runVMGenTests =
   TestList
   $ concat $ [l | (TestList l) <- [exprTests,
                                    statementTests,
                                    symbolTableUpdateTests,
-                                   subroutineDeclartaionTests]]
+                                   subroutineDeclartaionTests,
+                                   classLevelCodeGen]]
