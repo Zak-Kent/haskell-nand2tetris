@@ -81,7 +81,16 @@ instance VMGen Term where
     (++) <$> genVM expr <*> genCmds [pure "call ", genVM vn]
   genVM (ParenExpr expr) = genVM expr
   genVM (SubroutineCall sc) = genVM sc
-  genVM (Op s) = genVM s
+  genVM (Op (Symbol s)) = case M.lookup s opSymbolLookup of
+                            Nothing -> error
+                              $ printf "%s operator not found in op lookup" s
+                            (Just cmd) -> return cmd
+
+opSymbolLookup :: M.Map String String
+opSymbolLookup = M.fromList [("+", "add\n"), ("-", "sub\n"),
+                             ("*", "call Math.multiply 2\n"),
+                             ("/", "call Math.divide 2\n"),
+                             ("=", "")]
 
 postOrderExpr :: Tree Term -> SymbolTableState String
 postOrderExpr (Leaf t) = genVM t

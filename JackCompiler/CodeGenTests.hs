@@ -54,8 +54,8 @@ tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
                           "push constant 5 \
                           \push constant 6 \
                           \push constant 7 \
-                          \+ \
-                          \+"))
+                          \add \
+                          \add"))
                         $ fmap joinTags
                         $ evalVM
                         $ tryParse exprP "5 + 6 + 7")
@@ -65,15 +65,15 @@ tExprWithParens = TestCase (assertEqual "(4 + 2) - 8 + (3 * (2 + 1))"
                              (joinTags
                               "push constant 4 \
                              \ push constant 2 \
-                             \ + \
+                             \ add \
                              \ push constant 8 \
                              \ push constant 3 \
                              \ push constant 2 \
                              \ push constant 1 \
-                             \ + \
-                             \ * \
-                             \ + \
-                             \ -"))
+                             \ add \
+                             \ call Math.multiply 2 \
+                             \ add \
+                             \ sub"))
                             $ fmap joinTags
                             $ evalVM
                             $ tryParse exprP "(4 + 2) - 8 + (3 * (2 + 1))")
@@ -88,8 +88,8 @@ tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
                                  \ - \
                                  \ call g \
                                  \ push constant 5 \
-                                 \ * \
-                                 \ +"))
+                                 \ call Math.multiply 2 \
+                                 \ add"))
                                 $ fmap joinTags
                                 $ evalVM
                                 $ tryParse exprP "x + g(2,y,-z) * 5")
@@ -109,7 +109,7 @@ tLetStatementWExprCG = TestCase (assertEqual "let g = 3 + 5;"
                                   (joinTags
                                    "push constant 3 \
                                   \ push constant 5 \
-                                  \ + \
+                                  \ add \
                                   \ pop this 0"))
                            $ fmap joinTags
                            $ evalVM
@@ -153,7 +153,7 @@ tReturnWithExprCG =
              (joinTags
               "push constant 5 \
              \ push constant 5 \
-             \ * "))
+             \ call Math.multiply 2"))
             $ fmap joinTags
             $ evalVM
             $ tryParse statementP "return 5 * 5;")
@@ -168,9 +168,8 @@ tIfStatementNoElseCG =
              (joinTags
               "push constant 1 \
              \ push constant 2 \
-             \ + \
+             \ add \
              \ push constant 3 \
-             \ = \
              \ push not \
              \ if-goto L1 \
              \ push constant 6 \
@@ -288,7 +287,7 @@ tMethod =
              \ pop pointer 0 \
              \ push argument 1 \
              \ push constant 5 \
-             \ + \
+             \ add \
              \ pop local 0 \
              \ push local 0 \
              \ return"))
@@ -309,7 +308,7 @@ tFullClassCodeGen =
              \ pop pointer 0 \
              \ push argument 1 \
              \ push constant 1 \
-             \ + \
+             \ add \
              \ pop static 0 \
              \ push constant 0 \
              \ return"))
