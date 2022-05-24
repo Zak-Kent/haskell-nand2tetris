@@ -2,7 +2,7 @@ module AST where
 
 -- Jack terminals
 data Keyword = Keyword String deriving (Show, Eq, Ord)
-data Symbol = Symbol String deriving (Show, Eq)
+data Symbol = Symbol String deriving (Show, Eq, Ord)
 data Identifier = Identifier String deriving (Show, Eq, Ord)
 type VarName = Identifier
 

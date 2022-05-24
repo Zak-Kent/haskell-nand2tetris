@@ -85,7 +85,7 @@ tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
                                  \ push constant 2 \
                                  \ push local 5 \
                                  \ push static 2 \
-                                 \ - \
+                                 \ neg \
                                  \ call g \
                                  \ push constant 5 \
                                  \ call Math.multiply 2 \

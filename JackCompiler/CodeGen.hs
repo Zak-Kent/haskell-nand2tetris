@@ -76,21 +76,29 @@ instance VMGen Term where
   genVM (StringConstant s) = return $ printf "push %s\n" s
   genVM (KeywordConstant k) = return $ printf "push %s\n" k
   genVM (VarName vn) = genCmds [pure "push ", genVM vn]
-  genVM (UnaryOp op t) = genCmds [genVM t, genVM op]
+  genVM (UnaryOp op t) = genCmds [genVM t, genUnaryOpSym op]
+    where genUnaryOpSym o = case M.lookup o unaryOpSyms of
+            Nothing -> genVM o
+            (Just neg) -> return neg
   genVM (VarNameExpr vn expr) =
     (++) <$> genVM expr <*> genCmds [pure "call ", genVM vn]
   genVM (ParenExpr expr) = genVM expr
   genVM (SubroutineCall sc) = genVM sc
-  genVM (Op (Symbol s)) = case M.lookup s opSymbolLookup of
+  genVM (Op (Symbol s)) = case M.lookup s opSyms of
                             Nothing -> error
                               $ printf "%s operator not found in op lookup" s
                             (Just cmd) -> return cmd
 
-opSymbolLookup :: M.Map String String
-opSymbolLookup = M.fromList [("+", "add\n"), ("-", "sub\n"),
-                             ("*", "call Math.multiply 2\n"),
-                             ("/", "call Math.divide 2\n"),
-                             ("=", "")]
+unaryOpSyms :: M.Map Symbol String
+-- handle things like: -z or ~z in params. Ex. g(a, b, -z)
+unaryOpSyms = M.fromList [((Symbol "-"), "neg\n"),
+                          ((Symbol "~"), "not\n")]
+
+opSyms :: M.Map String String
+opSyms = M.fromList [("+", "add\n"), ("-", "sub\n"),
+                     ("*", "call Math.multiply 2\n"),
+                     ("/", "call Math.divide 2\n"),
+                     ("=", "")]
 
 postOrderExpr :: Tree Term -> SymbolTableState String
 postOrderExpr (Leaf t) = genVM t
