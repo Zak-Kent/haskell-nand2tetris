@@ -370,6 +370,34 @@ tClassWithArrayHandling =
                                 \   return 7;} \
                                 \ }")
 
+tClassWithStringConst =
+  TestCase (assertEqual "Class with string const"
+            (Just
+             (joinTags
+              "function Foo.boo 1 \
+              \ push argument 0 \
+              \ pop pointer 0 \
+              \ push constant 4 \
+              \ call String.new 1 \
+              \ push constant 102 \
+              \ call String.appendChar 2 \
+              \ push constant 111 \
+              \ call String.appendChar 2 \
+              \ push constant 111 \
+              \ call String.appendChar 2 \
+              \ push constant 111 \
+              \ call String.appendChar 2 \
+              \ pop local 0 \
+              \ push constant 0 \
+              \ return"))
+            $ fmap joinTags
+            $ evalVM
+            $ tryParse classP "class Foo { \
+                              \ method void boo () \
+                              \ {var str x; \
+                              \  let x = \"fooo\"; \
+                              \  return;}}")
+
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
             TestLabel "(4 + 2) - 8 + (3 * (2 + 1))" tExprWithParens,
@@ -398,7 +426,8 @@ subroutineDeclartaionTests =
 
 classLevelCodeGen =
   TestList [TestLabel "Full class code gen" tFullClassCodeGen,
-            TestLabel "Class with array handling" tClassWithArrayHandling]
+            TestLabel "Class with array handling" tClassWithArrayHandling,
+            TestLabel "Class with string const" tClassWithStringConst]
 
 runVMGenTests :: Test
 runVMGenTests =

@@ -1,6 +1,7 @@
 {-# LANGUAGE ExistentialQuantification, FlexibleInstances #-}
 module CodeGen where
 
+import Data.Char (ord)
 import qualified Control.Monad.State as S
 import qualified Data.Map as M
 import Text.Printf
@@ -75,40 +76,45 @@ instance VMGen SubCall where
 
 instance VMGen Term where
   genVM (IntegerConstant i) = return $ printf "push constant %d\n" i
-  genVM (StringConstant s) = return $ printf "push %s\n" s
+  genVM (ParenExpr expr) = genVM expr
+  genVM (SubroutineCall sc) = genVM sc
+  genVM (VarName vn) = genCmds [pure "push ", genVM vn]
+
+  genVM (VarNameExpr vn expr) =
+    (++) <$> genVM expr <*> genCmds [pure "call ", genVM vn]
+
+  genVM (StringConstant s) =
+    genCmds $ [pure $ printf "push constant %d\n" (length s),
+               pure "call String.new 1\n"]
+               ++ (map genCharPush s)
+    where
+      genCharPush c = pure $
+            printf "push constant %d\ncall String.appendChar 2\n" (ord c)
+
   genVM (KeywordConstant k) = return $ printf "push %s\n" (genKeyConsts k)
     where genKeyConsts kw = case M.lookup kw keywordConsts of
             Nothing -> kw
             (Just cmd) -> cmd
-  genVM (VarName vn) = genCmds [pure "push ", genVM vn]
+          keywordConsts = M.fromList [("null", "constant 0"),
+                                      ("false", "constant 0"),
+                                      ("true", "constant 1\nneg")]
+
   genVM (UnaryOp op t) = genCmds [genVM t, genUnaryOpSym op]
     where genUnaryOpSym o = case M.lookup o unaryOpSyms of
             Nothing -> genVM o
             (Just neg) -> return neg
-  genVM (VarNameExpr vn expr) =
-    (++) <$> genVM expr <*> genCmds [pure "call ", genVM vn]
-  genVM (ParenExpr expr) = genVM expr
-  genVM (SubroutineCall sc) = genVM sc
+          -- handle things like: -z or ~z in params. Ex. g(a, b, -z)
+          unaryOpSyms = M.fromList [((Symbol "-"), "neg\n"),
+                                    ((Symbol "~"), "not\n")]
+
   genVM (Op (Symbol s)) = case M.lookup s opSyms of
                             Nothing -> error
                               $ printf "%s operator not found in op lookup" s
                             (Just cmd) -> return cmd
-
-keywordConsts :: M.Map String String
-keywordConsts = M.fromList [("null", "constant 0"),
-                            ("false", "constant 0"),
-                            ("true", "constant 1\nneg")]
-
-unaryOpSyms :: M.Map Symbol String
--- handle things like: -z or ~z in params. Ex. g(a, b, -z)
-unaryOpSyms = M.fromList [((Symbol "-"), "neg\n"),
-                          ((Symbol "~"), "not\n")]
-
-opSyms :: M.Map String String
-opSyms = M.fromList [("+", "add\n"), ("-", "sub\n"),
-                     ("*", "call Math.multiply 2\n"),
-                     ("/", "call Math.divide 2\n"),
-                     ("=", "")]
+    where opSyms = M.fromList [("+", "add\n"), ("-", "sub\n"),
+                               ("*", "call Math.multiply 2\n"),
+                               ("/", "call Math.divide 2\n"),
+                               ("=", "")]
 
 postOrderExpr :: Tree Term -> SymbolTableState String
 postOrderExpr (Leaf t) = genVM t
