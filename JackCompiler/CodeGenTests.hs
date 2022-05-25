@@ -189,7 +189,7 @@ tIfStatementElseCG =
   TestCase (assertEqual "if (false) {let g = 2;} else {do foo.bar();} "
             (Just
              (joinTags
-              "push false \
+              "push constant 0 \
              \ push not \
              \ if-goto L1 \
              \ push constant 2 \
@@ -208,7 +208,8 @@ tWhileStatementCG =
             (Just
              (joinTags
               "label L1 \
-             \ push true \
+             \ push constant 1 \
+             \ neg \
              \ push not \
              \ if-goto L2 \
              \ call bar.baz 0\

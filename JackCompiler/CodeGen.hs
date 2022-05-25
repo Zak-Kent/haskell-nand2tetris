@@ -76,7 +76,10 @@ instance VMGen SubCall where
 instance VMGen Term where
   genVM (IntegerConstant i) = return $ printf "push constant %d\n" i
   genVM (StringConstant s) = return $ printf "push %s\n" s
-  genVM (KeywordConstant k) = return $ printf "push %s\n" k
+  genVM (KeywordConstant k) = return $ printf "push %s\n" (genKeyConsts k)
+    where genKeyConsts kw = case M.lookup kw keywordConsts of
+            Nothing -> kw
+            (Just cmd) -> cmd
   genVM (VarName vn) = genCmds [pure "push ", genVM vn]
   genVM (UnaryOp op t) = genCmds [genVM t, genUnaryOpSym op]
     where genUnaryOpSym o = case M.lookup o unaryOpSyms of
@@ -90,6 +93,11 @@ instance VMGen Term where
                             Nothing -> error
                               $ printf "%s operator not found in op lookup" s
                             (Just cmd) -> return cmd
+
+keywordConsts :: M.Map String String
+keywordConsts = M.fromList [("null", "constant 0"),
+                            ("false", "constant 0"),
+                            ("true", "constant 1\nneg")]
 
 unaryOpSyms :: M.Map Symbol String
 -- handle things like: -z or ~z in params. Ex. g(a, b, -z)
