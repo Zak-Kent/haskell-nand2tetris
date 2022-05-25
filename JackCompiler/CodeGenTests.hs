@@ -117,14 +117,16 @@ tLetStatementWExprCG = TestCase (assertEqual "let g = 3 + 5;"
 
 tLetStatementVarNameExprCG =
   TestCase (assertEqual "let y[0] = 3;"
-           -- TODO: this is behavior is wrong, fix when you learn how
-           -- to handle array access
             (Just
              (joinTags
-              "push constant 3 \
-             \ pop \
-             \ push constant 0 \
-             \ pop local 5"))
+              "push constant 0 \
+             \ push local 5 \
+             \ add \
+             \ push constant 3 \
+             \ pop temp 0 \
+             \ pop pointer 1 \
+             \ push temp 0 \
+             \ pop that 0"))
              $ fmap joinTags
              $ evalVM
              $ tryParse statementP "let y[0] = 3;")
@@ -326,19 +328,28 @@ tClassWithArrayHandling =
             (Just
              (joinTags
               "function Foo.baz 1 \
-              \ push argument 0 \
-              \ pop pointer 0 \
-              \ push argument 1 \
-              \ call Array.new 1 \
-              \ pop local 0 \
-              \ push constant 0 \
-              \ return"))
+             \ push argument 0 \
+             \ pop pointer 0 \
+             \ push argument 1 \
+             \ call Array.new 1 \
+             \ pop local 0 \
+             \ push constant 2 \
+             \ push local 0 \
+             \ add \
+             \ push constant 5 \
+             \ pop temp 0 \
+             \ pop pointer 1 \
+             \ push temp 0 \
+             \ pop that 0 \
+             \ push constant 0 \
+             \ return"))
             $ fmap joinTags
             $ evalVM
-            $ tryParse classP " class Foo { \
+            $ tryParse classP "class Foo { \
                                 \ method void baz (int biz) \
                                 \ { var Array x; \
                                 \   let x = Array.new(biz); \
+                                \   let x[2] = 5; \
                                 \ return; }}")
 
 exprTests =

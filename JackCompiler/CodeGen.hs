@@ -113,13 +113,6 @@ instance VMGen [Expr] where
   -- TODO: double check if you need to add \n between the lists here
   genVM exprs = genCmds $ map genVM exprs
 
-instance VMGen LetVarName where
-  genVM (LetVarName vn) = genVM vn
-  genVM (LetVarNameExpr vn expr) =
-    -- TODO: this is behavior is wrong, fix when you learn how
-    -- to handle array access
-    genCmds [genVM expr, pure "pop ", genVM vn]
-
 instance VMGen [Statement] where
   genVM stmts = genCmds $ map genVM stmts
 
@@ -133,8 +126,20 @@ incLabelCount = do
   return (labelCount + 1, labelCount + 2)
 
 instance VMGen Statement where
-  genVM (Let vn expr) =
+  genVM (Let (LetVarName vn) expr) =
     genCmds [genVM expr, pure "pop ", genVM vn]
+  genVM (Let (LetVarNameExpr lvn lExpr) expr) =
+    genCmds [
+      genVM lExpr,
+      pure "push ",
+      genVM lvn,
+      pure "add\n",
+      genVM expr,
+      pure "pop temp 0\n",
+      pure "pop pointer 1\n",
+      pure "push temp 0\n",
+      pure "pop that 0\n"
+      ]
 
   genVM (Do subCall) = genVM subCall
 
