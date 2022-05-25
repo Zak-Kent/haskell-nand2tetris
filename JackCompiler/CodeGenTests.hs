@@ -82,11 +82,12 @@ tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
                                 (Just
                                  (joinTags
                                   "push argument 1 \
+                                 \ push pointer 0 \
                                  \ push constant 2 \
                                  \ push local 5 \
                                  \ push static 2 \
                                  \ neg \
-                                 \ call g 3\
+                                 \ call Foo.g 4 \
                                  \ push constant 5 \
                                  \ call Math.multiply 2 \
                                  \ add"))
@@ -137,7 +138,8 @@ tDoSubCallStatementCG =
              (joinTags
               "push constant 1 \
              \ push constant 2 \
-             \ call foo.bar 2"))
+             \ call foo.bar 2 \
+             \ pop temp 0"))
              $ fmap joinTags
              $ evalVM
              $ tryParse statementP "do foo.bar(1, 2);")
@@ -195,6 +197,7 @@ tIfStatementElseCG =
              \ goto L2 \
              \ label L1 \
              \ call foo.bar 0\
+             \ pop temp 0\
              \ label L2"))
             $ fmap joinTags
             $ evalVM
@@ -209,6 +212,7 @@ tWhileStatementCG =
              \ push not \
              \ if-goto L2 \
              \ call bar.baz 0\
+             \ pop temp 0 \
              \ goto L1 \
              \ label L2"))
             $ fmap joinTags
@@ -324,25 +328,34 @@ tFullClassCodeGen =
                                 \ return; }}")
 
 tClassWithArrayHandling =
-  TestCase (assertEqual "Method returning an int"
+  TestCase (assertEqual "Class with array handling and method calls"
             (Just
              (joinTags
-              "function Foo.baz 1 \
-             \ push argument 0 \
-             \ pop pointer 0 \
-             \ push argument 1 \
-             \ call Array.new 1 \
-             \ pop local 0 \
-             \ push constant 2 \
-             \ push local 0 \
-             \ add \
-             \ push constant 5 \
-             \ pop temp 0 \
-             \ pop pointer 1 \
-             \ push temp 0 \
-             \ pop that 0 \
-             \ push constant 0 \
-             \ return"))
+             "function Foo.baz 1 \
+            \ push argument 0 \
+            \ pop pointer 0 \
+            \ push argument 1 \
+            \ call Array.new 1 \
+            \ pop local 0 \
+            \ push constant 2 \
+            \ push local 0 \
+            \ add \
+            \ push constant 5 \
+            \ pop temp 0 \
+            \ pop pointer 1 \
+            \ push temp 0 \
+            \ pop that 0 \
+            \ push constant 0 \
+            \ return \
+            \ function Foo.bar 0 \
+            \ push argument 0 \
+            \ pop pointer 0 \
+            \ push pointer 0 \
+            \ push constant 5 \
+            \ call Foo.baz 2 \
+            \ pop temp 0 \
+            \ push constant 7 \
+            \ return"))
             $ fmap joinTags
             $ evalVM
             $ tryParse classP "class Foo { \
@@ -350,7 +363,11 @@ tClassWithArrayHandling =
                                 \ { var Array x; \
                                 \   let x = Array.new(biz); \
                                 \   let x[2] = 5; \
-                                \ return; }}")
+                                \ return; } \
+                                \ method int bar () \
+                                \ { do baz(5); \
+                                \   return 7;} \
+                                \ }")
 
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,

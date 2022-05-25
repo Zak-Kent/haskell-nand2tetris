@@ -41,8 +41,8 @@ lookupSym vn = do
 
 genSymCmd :: SymbolInfo -> String
 -- all class fields are mapped to 'this' with an offset
-genSymCmd (SymbolInfo _ (Keyword "field") occ) = printf "this %d" occ
-genSymCmd (SymbolInfo _ (Keyword k) occ) = printf "%s %d" k occ
+genSymCmd (SymbolInfo _ (Keyword "field") occ) = printf "this %d\n" occ
+genSymCmd (SymbolInfo _ (Keyword k) occ) = printf "%s %d\n" k occ
 
 class VMGen a where
   genVM :: a -> SymbolTableState String
@@ -64,10 +64,11 @@ instance VMGen Identifier where
                 (Just s) -> genSymCmd s
 
 instance VMGen SubCall where
-  -- TODO: you many need to add VM cmds here to pop off the dummy
-  -- return value if any void methods are called
-  genVM (SubCallName (Identifier sn) exprs) =
-    (++) <$> genVM exprs <*> (pure $ printf "call %s %d\n" sn (length exprs))
+  genVM (SubCallName (Identifier sn) exprs) = do
+    (_, _, _, clsName) <- S.get
+    genCmds [pure "push pointer 0\n",
+             genVM exprs,
+             (pure $ printf "call %s.%s %d\n" clsName sn ((+1) (length exprs)))]
   genVM (SubCallClassOrVar (Identifier cvn) (Identifier sn) exprs) =
     (++) <$> genVM exprs
          <*> (pure $ printf "call %s.%s %d\n" cvn sn (length exprs))
@@ -141,7 +142,8 @@ instance VMGen Statement where
       pure "pop that 0\n"
       ]
 
-  genVM (Do subCall) = genVM subCall
+  -- this assumes that all do calls don't care about return value
+  genVM (Do subCall) = genCmds [genVM subCall, pure "pop temp 0\n"]
 
   genVM (Return maybeExpr) =
     -- gen of VM 'return' cmd is handled in subroutineDec because
@@ -252,7 +254,7 @@ genVMFuncDec :: Identifier -> SymbolTableState String
 genVMFuncDec (Identifier subName) = do
   (_, subSyms, _, cName) <- S.get
   -- ex. 'function <className>.<subName> <num local vars>'
-  return $ printf "function %s.%s %d " cName subName
+  return $ printf "function %s.%s %d\n" cName subName
          $ occCount (Keyword "local") subSyms
 
 genReturn :: Type -> String
