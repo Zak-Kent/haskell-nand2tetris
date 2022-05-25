@@ -5,6 +5,7 @@ import Data.Char (ord)
 import qualified Control.Monad.State as S
 import qualified Data.Map as M
 import Text.Printf
+import Data.Maybe
 
 import AST
 import SymbolTable
@@ -70,9 +71,22 @@ instance VMGen SubCall where
     genCmds [pure "push pointer 0\n",
              genVM exprs,
              (pure $ printf "call %s.%s %d\n" clsName sn ((+1) (length exprs)))]
-  genVM (SubCallClassOrVar (Identifier cvn) (Identifier sn) exprs) =
-    (++) <$> genVM exprs
-         <*> (pure $ printf "call %s.%s %d\n" cvn sn (length exprs))
+  genVM (SubCallClassOrVar cvn (Identifier subN) exprs) = do
+    -- if the first name is in the symbol table sub out for Class type
+    -- ex. var Baz b1; do b1.foo(); -> call Baz.foo 1
+    clsSym <- lookupSym cvn
+    genCmds [genVM exprs, pure $ genSubCmds clsSym]
+    where genSubCmds clsSym =
+            case clsSym of
+              Nothing -> genCall cvn (length exprs)
+              symI@(Just (SymbolInfo
+                          (TIdentifier tp) _ _)) ->
+                "push " ++  genSymCmd (fromJust symI)
+                ++ genCall tp ((+1) (length exprs))
+              _ -> error "SymbolInfo with a TKeyword encountered"
+
+          genCall (Identifier name) nExprs =
+            printf "call %s.%s %d\n" name subN nExprs
 
 instance VMGen Term where
   genVM (IntegerConstant i) = return $ printf "push constant %d\n" i

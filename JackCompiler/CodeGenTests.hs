@@ -398,6 +398,29 @@ tClassWithStringConst =
                               \  let x = \"fooo\"; \
                               \  return;}}")
 
+tClassWithSubCallDiffClass =
+  TestCase (assertEqual "Class with sub call from diff class"
+            (Just
+             (joinTags
+             " function Foo.boo 1 \
+               \ push argument 0 \
+               \ pop pointer 0 \
+               \ call Blarg.new 0 \
+               \ pop local 0 \
+               \ push local 0 \
+               \ call Blarg.foo 1 \
+               \ pop temp 0 \
+               \ push constant 0 \
+               \ return"))
+            $ fmap joinTags
+            $ evalVM
+            $ tryParse classP "class Foo { \
+                             \ method void boo () \
+                             \ {var Blarg b1; \
+                             \  let b1 = Blarg.new(); \
+                             \  do b1.foo(); \
+                             \  return;}} ")
+
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
             TestLabel "(4 + 2) - 8 + (3 * (2 + 1))" tExprWithParens,
@@ -427,7 +450,8 @@ subroutineDeclartaionTests =
 classLevelCodeGen =
   TestList [TestLabel "Full class code gen" tFullClassCodeGen,
             TestLabel "Class with array handling" tClassWithArrayHandling,
-            TestLabel "Class with string const" tClassWithStringConst]
+            TestLabel "Class with string const" tClassWithStringConst,
+            TestLabel "Class with sub call from diff class" tClassWithSubCallDiffClass]
 
 runVMGenTests :: Test
 runVMGenTests =
