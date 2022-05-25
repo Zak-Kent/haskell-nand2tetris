@@ -86,7 +86,7 @@ tExprWithMethodCall = TestCase (assertEqual "x + g(2,y,-z) * 5"
                                  \ push local 5 \
                                  \ push static 2 \
                                  \ neg \
-                                 \ call g \
+                                 \ call g 3\
                                  \ push constant 5 \
                                  \ call Math.multiply 2 \
                                  \ add"))
@@ -135,7 +135,7 @@ tDoSubCallStatementCG =
              (joinTags
               "push constant 1 \
              \ push constant 2 \
-             \ call foo.bar"))
+             \ call foo.bar 2"))
              $ fmap joinTags
              $ evalVM
              $ tryParse statementP "do foo.bar(1, 2);")
@@ -192,7 +192,7 @@ tIfStatementElseCG =
              \ pop this 0 \
              \ goto L2 \
              \ label L1 \
-             \ call foo.bar \
+             \ call foo.bar 0\
              \ label L2"))
             $ fmap joinTags
             $ evalVM
@@ -206,7 +206,7 @@ tWhileStatementCG =
              \ push true \
              \ push not \
              \ if-goto L2 \
-             \ call bar.baz \
+             \ call bar.baz 0\
              \ goto L1 \
              \ label L2"))
             $ fmap joinTags
@@ -321,6 +321,26 @@ tFullClassCodeGen =
                                 \ { let blarg = biz + 1; \
                                 \ return; }}")
 
+tClassWithArrayHandling =
+  TestCase (assertEqual "Method returning an int"
+            (Just
+             (joinTags
+              "function Foo.baz 1 \
+              \ push argument 0 \
+              \ pop pointer 0 \
+              \ push argument 1 \
+              \ call Array.new 1 \
+              \ pop local 0 \
+              \ push constant 0 \
+              \ return"))
+            $ fmap joinTags
+            $ evalVM
+            $ tryParse classP " class Foo { \
+                                \ method void baz (int biz) \
+                                \ { var Array x; \
+                                \   let x = Array.new(biz); \
+                                \ return; }}")
+
 exprTests =
   TestList [TestLabel "5 + 6 + 7" tSimpleExpr,
             TestLabel "(4 + 2) - 8 + (3 * (2 + 1))" tExprWithParens,
@@ -348,7 +368,8 @@ subroutineDeclartaionTests =
             TestLabel "Method returning an int" tMethod]
 
 classLevelCodeGen =
-  TestList [TestLabel "Full class code gen" tFullClassCodeGen]
+  TestList [TestLabel "Full class code gen" tFullClassCodeGen,
+            TestLabel "Class with array handling" tClassWithArrayHandling]
 
 runVMGenTests :: Test
 runVMGenTests =

@@ -67,9 +67,10 @@ instance VMGen SubCall where
   -- TODO: you many need to add VM cmds here to pop off the dummy
   -- return value if any void methods are called
   genVM (SubCallName (Identifier sn) exprs) =
-    (++) <$> genVM exprs <*> (pure $ printf "call %s\n" sn)
+    (++) <$> genVM exprs <*> (pure $ printf "call %s %d\n" sn (length exprs))
   genVM (SubCallClassOrVar (Identifier cvn) (Identifier sn) exprs) =
-    (++) <$> genVM exprs <*> (pure $ printf "call %s.%s\n" cvn sn)
+    (++) <$> genVM exprs
+         <*> (pure $ printf "call %s.%s %d\n" cvn sn (length exprs))
 
 instance VMGen Term where
   genVM (IntegerConstant i) = return $ printf "push constant %d\n" i
