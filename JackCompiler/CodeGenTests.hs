@@ -34,19 +34,19 @@ classSymT = M.fromList [(Identifier "g",
 evalVM :: (VMGen a) => Maybe a -> Maybe String
 evalVM Nothing = Nothing
 evalVM (Just vm) =
-  Just $ S.evalState (genVM vm) (classSymT, localSymT, 0, "Foo")
+  Just $ S.evalState (genVM vm) (classSymT, localSymT, 0, 0, "Foo")
 
 checkSymTables ::  (VMGen a) => Maybe a -> Maybe (SymTable, SymTable)
 checkSymTables Nothing = Nothing
 checkSymTables (Just vm) =
-    let (clsSyms, subSyms, _, _) =
-          S.execState (genVM vm) (M.empty, M.empty, 0, "Foo")
+    let (clsSyms, subSyms, _, _, _) =
+          S.execState (genVM vm) (M.empty, M.empty, 0, 0, "Foo")
     in Just (clsSyms, subSyms)
 
 evalVMEmptyState :: (VMGen a) => Maybe a -> Maybe String
 evalVMEmptyState Nothing = Nothing
 evalVMEmptyState (Just vm) =
-  Just $ S.evalState (genVM vm) (M.empty, M.empty, 0, "Foo")
+  Just $ S.evalState (genVM vm) (M.empty, M.empty, 0, 0, "Foo")
 
 tSimpleExpr = TestCase (assertEqual "5 + 6 + 7"
                         (Just
@@ -174,13 +174,13 @@ tIfStatementNoElseCG =
              \ push constant 2 \
              \ add \
              \ push constant 3 \
-             \ push not \
-             \ if-goto L1 \
+             \ eq \
+             \ if-goto IF_TRUE0 \
              \ push constant 6 \
              \ pop argument 1 \
-             \ goto L2 \
-             \ label L1 \
-             \ label L2"))
+             \ goto IF_FALSE0 \
+             \ label IF_TRUE0 \
+             \ label IF_FALSE0"))
             $ fmap joinTags
             $ evalVM
             $ tryParse statementP "if ((1 + 2) = 3) {let x = 6;}")
@@ -190,15 +190,14 @@ tIfStatementElseCG =
             (Just
              (joinTags
               "push constant 0 \
-             \ push not \
-             \ if-goto L1 \
+             \ if-goto IF_TRUE0 \
              \ push constant 2 \
              \ pop this 0 \
-             \ goto L2 \
-             \ label L1 \
+             \ goto IF_FALSE0 \
+             \ label IF_TRUE0 \
              \ call foo.bar 0\
              \ pop temp 0\
-             \ label L2"))
+             \ label IF_FALSE0"))
             $ fmap joinTags
             $ evalVM
             $ tryParse statementP "if (false) {let g = 2;} else {do foo.bar();} ")
@@ -207,15 +206,15 @@ tWhileStatementCG =
   TestCase (assertEqual "{while (true) {do bar.baz();}}"
             (Just
              (joinTags
-              "label L1 \
+              "label WHILE_EXP0 \
              \ push constant 1 \
              \ neg \
-             \ push not \
-             \ if-goto L2 \
+             \ not \
+             \ if-goto WHILE_END0 \
              \ call bar.baz 0\
              \ pop temp 0 \
-             \ goto L1 \
-             \ label L2"))
+             \ goto WHILE_EXP0 \
+             \ label WHILE_END0"))
             $ fmap joinTags
             $ evalVM
             $ tryParse statementP "while (true) {do bar.baz();}")

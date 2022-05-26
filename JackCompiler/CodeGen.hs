@@ -11,11 +11,12 @@ import AST
 import SymbolTable
 
 type SymTable = M.Map VarName SymbolInfo
-type LabelCount = Int -- used to generate unique labels in flow control
+type WhileLC = Int -- used to generate unique labels in flow control
+type IfLC = Int
 type ClassName = String
 -- the two symbols tables needed at any given point in compilation
 -- (<class symbol table>, <subroutine symbol table>)
-type SymbolTableState = S.State (SymTable, SymTable, LabelCount, ClassName)
+type SymbolTableState = S.State (SymTable, SymTable, WhileLC, IfLC, ClassName)
 
 genMaybeCmd :: (VMGen a) => Maybe a -> SymbolTableState String
 genMaybeCmd Nothing = pure ""
@@ -34,7 +35,7 @@ lookupSym :: VarName -> SymbolTableState (Maybe SymbolInfo)
 lookupSym vn = do
   s <- S.get
   return $ checkVal vn s
-  where checkVal v (clsSyms, localSyms, _, _) =
+  where checkVal v (clsSyms, localSyms, _, _, _) =
           case M.lookup v localSyms of
             (Just symI) -> (Just symI)
             Nothing -> case M.lookup v clsSyms of
@@ -67,7 +68,7 @@ instance VMGen Identifier where
 
 instance VMGen SubCall where
   genVM (SubCallName (Identifier sn) exprs) = do
-    (_, _, _, clsName) <- S.get
+    (_, _, _, _, clsName) <- S.get
     genCmds [pure "push pointer 0\n",
              genVM exprs,
              (pure $ printf "call %s.%s %d\n" clsName sn ((+1) (length exprs)))]
@@ -128,7 +129,9 @@ instance VMGen Term where
     where opSyms = M.fromList [("+", "add\n"), ("-", "sub\n"),
                                ("*", "call Math.multiply 2\n"),
                                ("/", "call Math.divide 2\n"),
-                               ("=", "")]
+                               ("<", "lt\n"),
+                               (">", "gt\n"),
+                               ("=", "eq\n")]
 
 postOrderExpr :: Tree Term -> SymbolTableState String
 postOrderExpr (Leaf t) = genVM t
@@ -148,11 +151,16 @@ instance VMGen [Statement] where
 instance VMGen Else where
   genVM (Else stmts) = genVM stmts
 
-incLabelCount :: SymbolTableState (Int, Int)
-incLabelCount = do
-  (clsSyms, subSyms, labelCount, cName) <- S.get
-  S.put (clsSyms, subSyms, (labelCount + 2), cName)
-  return (labelCount + 1, labelCount + 2)
+incLabelCount :: String -> SymbolTableState Int
+incLabelCount s = do
+  (clsSyms, subSyms, wLC, iLC, cName) <- S.get
+  case s of
+    "if" -> S.put (clsSyms, subSyms, wLC, (iLC + 1), cName)
+    "while" -> S.put (clsSyms, subSyms, (wLC + 1), iLC, cName)
+    _ -> error "incLabelCount called with invalid input"
+  return $ case s of
+             "if" -> iLC
+             "while" -> wLC
 
 instance VMGen Statement where
   genVM (Let (LetVarName vn) expr) =
@@ -180,28 +188,27 @@ instance VMGen Statement where
     genMaybeReturn maybeExpr
 
   genVM (If expr stmts maybeStmts) = do
-      (l1, l2) <- incLabelCount
-      genCmds [
-        genVM expr,
-        pure "push not\n",
-        pure $ printf "if-goto L%d\n" l1,
-        genVM stmts,
-        pure $ printf "goto L%d\n" l2,
-        pure $ printf "label L%d\n" l1,
-        genMaybeCmd maybeStmts,
-        pure $ printf "label L%d\n" l2
-        ]
+    lc <- incLabelCount "if"
+    genCmds [
+      genVM expr,
+      pure $ printf "if-goto IF_TRUE%d\n" lc,
+      genVM stmts,
+      pure $ printf "goto IF_FALSE%d\n" lc,
+      pure $ printf "label IF_TRUE%d\n" lc,
+      genMaybeCmd maybeStmts,
+      pure $ printf "label IF_FALSE%d\n" lc
+      ]
 
   genVM (While expr stmts) = do
-    (l1, l2) <- incLabelCount
+    lc <- incLabelCount "while"
     genCmds [
-      pure $ printf "label L%d\n" l1,
+      pure $ printf "label WHILE_EXP%d\n" lc,
       genVM expr,
-      pure "push not\n",
-      pure $ printf "if-goto L%d\n" l2,
+      pure "not\n",
+      pure $ printf "if-goto WHILE_END%d\n" lc,
       genVM stmts,
-      pure $ printf "goto L%d\n" l1,
-      pure $ printf "label L%d\n" l2
+      pure $ printf "goto WHILE_EXP%d\n" lc,
+      pure $ printf "label WHILE_END%d\n" lc
       ]
 
 instance VMGen Type where
@@ -228,9 +235,9 @@ instance VMGen VarDec where
    SymbolTable is handled a couple levels up in SubroutineDec.
   -}
   genVM (VarDec tp vn vns) = do
-    (clsSyms, subSyms, labelC, cName) <- S.get
+    (clsSyms, subSyms, wLC, iLC, cName) <- S.get
     let newSubSyms = mergeSyms (newSyms subSyms) subSyms
-    S.put (clsSyms, newSubSyms, labelC, cName)
+    S.put (clsSyms, newSubSyms, wLC, iLC, cName)
     return ""
     where newSyms subS = map symInfo
             $ zip (vn:vns) [(occCount (Keyword "local") subS)..]
@@ -254,9 +261,9 @@ instance VMGen ParameterList where
      keys below. Clearing of the symbol table is handled one level above in
      SubroutineDec.
     -}
-    (clsSyms, subSyms, labelC, cName) <- S.get
+    (clsSyms, subSyms, wLC, iLC, cName) <- S.get
     let newSubSyms = mergeSyms (newSyms subSyms) subSyms
-    S.put (clsSyms, newSubSyms, labelC, cName)
+    S.put (clsSyms, newSubSyms, wLC, iLC, cName)
     return ""
     where newSyms subS = map symInfo $ zip params [(length subS)..]
           symInfo ((tp, vn), oc) = (vn,
@@ -266,8 +273,8 @@ instance VMGen ParameterList where
 
 initSubSymTbl :: String -> SymbolTableState String
 initSubSymTbl methTyp = do
-  (clsSyms, _, labelC, cName) <- S.get
-  S.put (clsSyms, (subSyms methTyp cName), labelC, cName)
+  (clsSyms, _, wLC, iLC, cName) <- S.get
+  S.put (clsSyms, (subSyms methTyp cName), wLC, iLC, cName)
   return ""
   where subSyms mt cn = case mt of
           "method" ->
@@ -280,7 +287,7 @@ initSubSymTbl methTyp = do
 
 genVMFuncDec :: Identifier -> SymbolTableState String
 genVMFuncDec (Identifier subName) = do
-  (_, subSyms, _, cName) <- S.get
+  (_, subSyms, _, _, cName) <- S.get
   -- ex. 'function <className>.<subName> <num local vars>'
   return $ printf "function %s.%s %d\n" cName subName
          $ occCount (Keyword "local") subSyms
@@ -291,7 +298,7 @@ genReturn _ = "return\n"
 
 classFieldCount :: SymbolTableState String
 classFieldCount = do
-  (clsSyms, _, _, _) <- S.get
+  (clsSyms, _, _, _, _) <- S.get
   return $ show $ occCount (Keyword "field") clsSyms
 
 instance VMGen SubroutineDec where
@@ -336,9 +343,9 @@ instance VMGen [SubroutineDec] where
 instance VMGen ClassVarDec where
   genVM (ClassVarDec kw tp vn vns) = do
     -- clearing out class symbol table happens one level up in Class
-    (clsSyms, subSyms, labelC, cName) <- S.get
+    (clsSyms, subSyms, wLC, iLC, cName) <- S.get
     let newClsSyms = mergeSyms (newSyms clsSyms) clsSyms
-    S.put (newClsSyms, subSyms, labelC, cName)
+    S.put (newClsSyms, subSyms, wLC, iLC, cName)
     return ""
     where newSyms cSyms = map symInfo $ zip (vn:vns) [(length cSyms)..]
           symInfo (v, oc) = (v,
@@ -351,5 +358,5 @@ instance VMGen [ClassVarDec] where
 
 instance VMGen Class where
   genVM (Class _ (Identifier clsName) clsVarDecs subDecs) = do
-    S.put (M.empty, M.empty, 0, clsName) -- init empty state
+    S.put (M.empty, M.empty, 0, 0, clsName) -- init empty state
     genCmds [genVM clsVarDecs, genVM subDecs]
