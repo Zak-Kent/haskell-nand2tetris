@@ -139,9 +139,8 @@ instance VMGen Term where
     where opSyms = M.fromList [("+", "add\n"), ("-", "sub\n"),
                                ("*", "call Math.multiply 2\n"),
                                ("/", "call Math.divide 2\n"),
-                               ("<", "lt\n"),
-                               (">", "gt\n"),
-                               ("=", "eq\n")]
+                               ("<", "lt\n"), (">", "gt\n"),
+                               ("=", "eq\n"), ("&", "and\n")]
 
 postOrderExpr :: Tree Term -> SymbolTableState String
 postOrderExpr (Leaf t) = genVM t
