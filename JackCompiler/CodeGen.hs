@@ -202,9 +202,9 @@ instance VMGen Statement where
     genCmds [
       genVM expr,
       pure $ printf "if-goto IF_TRUE%d\n" lc,
-      genVM stmts,
       pure $ printf "goto IF_FALSE%d\n" lc,
       pure $ printf "label IF_TRUE%d\n" lc,
+      genVM stmts,
       genMaybeCmd maybeStmts,
       pure $ printf "label IF_FALSE%d\n" lc
       ]

@@ -190,10 +190,10 @@ tIfStatementNoElseCG =
              \ push constant 3 \
              \ eq \
              \ if-goto IF_TRUE0 \
-             \ push constant 6 \
-             \ pop argument 1 \
              \ goto IF_FALSE0 \
              \ label IF_TRUE0 \
+             \ push constant 6 \
+             \ pop argument 1 \
              \ label IF_FALSE0"))
             $ fmap joinTags
             $ evalVM
@@ -205,10 +205,10 @@ tIfStatementElseCG =
              (joinTags
               "push constant 0 \
              \ if-goto IF_TRUE0 \
-             \ push constant 2 \
-             \ pop this 0 \
              \ goto IF_FALSE0 \
              \ label IF_TRUE0 \
+             \ push constant 2 \
+             \ pop this 0 \
              \ call foo.bar 0\
              \ pop temp 0\
              \ label IF_FALSE0"))
