@@ -96,7 +96,17 @@ instance VMGen Term where
   genVM (VarName vn) = genCmds [pure "push ", genVM vn]
 
   genVM (VarNameExpr vn expr) =
-    (++) <$> genVM expr <*> genCmds [pure "call ", genVM vn]
+    -- This is for handling array access on the right side of an '='
+    -- Ex. let foo = a[1];
+    -- in this case the value at a[1] needs to be pushed on to the stack
+    genCmds [
+      genVM expr,
+      pure "push ",
+      genVM vn,
+      pure "add\n",
+      pure "pop pointer 1\n",
+      pure "push that 0\n"
+      ]
 
   genVM (StringConstant s) =
     genCmds $ [pure $ printf "push constant %d\n" (length s),

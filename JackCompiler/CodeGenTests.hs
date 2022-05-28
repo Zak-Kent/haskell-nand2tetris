@@ -116,6 +116,20 @@ tLetStatementWExprCG = TestCase (assertEqual "let g = 3 + 5;"
                            $ evalVM
                            $ tryParse statementP "let g = 3 + 5;")
 
+tLetStatementWithArrayAccess =
+  TestCase (assertEqual "let g = x[1];"
+                                 (Just
+                                  (joinTags
+                                   "push constant 1 \
+                                  \ push argument 1 \
+                                  \ add \
+                                  \ pop pointer 1 \
+                                  \ push that 0 \
+                                  \ pop this 0"))
+                           $ fmap joinTags
+                           $ evalVM
+                           $ tryParse statementP "let g = x[1];")
+
 tLetStatementVarNameExprCG =
   TestCase (assertEqual "let y[0] = 3;"
             (Just
@@ -434,7 +448,8 @@ statementTests =
             TestLabel "return 5 * 5;" tReturnWithExprCG,
             TestLabel "if ((1 + 2) = 3) {let x = 6;}" tIfStatementNoElseCG,
             TestLabel "if with else" tIfStatementElseCG,
-            TestLabel "{while (true) {do bar.baz();}}" tWhileStatementCG]
+            TestLabel "{while (true) {do bar.baz();}}" tWhileStatementCG,
+            TestLabel "Let with array access on right" tLetStatementWithArrayAccess]
 
 symbolTableUpdateTests =
   TestList [TestLabel "single VarDec update" tSingleVarDecSymTableUpdate,
