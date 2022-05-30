@@ -204,9 +204,14 @@ instance VMGen Statement where
       pure $ printf "goto IF_FALSE%d\n" lc,
       pure $ printf "label IF_TRUE%d\n" lc,
       genVM stmts,
+      pure $ genIfEnds maybeStmts (printf "goto IF_END%d\n" lc),
+      pure $ printf "label IF_FALSE%d\n" lc,
       genMaybeCmd maybeStmts,
-      pure $ printf "label IF_FALSE%d\n" lc
+      pure $ genIfEnds maybeStmts (printf "label IF_END%d\n" lc)
       ]
+      where genIfEnds mStmts cmd = case mStmts of
+              Nothing -> ""
+              (Just _) -> cmd
 
   genVM (While expr stmts) = do
     lc <- incLabelCount "while"

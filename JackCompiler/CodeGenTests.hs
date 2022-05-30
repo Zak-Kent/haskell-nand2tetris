@@ -209,9 +209,11 @@ tIfStatementElseCG =
              \ label IF_TRUE0 \
              \ push constant 2 \
              \ pop this 0 \
-             \ call foo.bar 0\
-             \ pop temp 0\
-             \ label IF_FALSE0"))
+             \ goto IF_END0 \
+             \ label IF_FALSE0 \
+             \ call foo.bar 0 \
+             \ pop temp 0 \
+             \ label IF_END0"))
             $ fmap joinTags
             $ evalVM
             $ tryParse statementP "if (false) {let g = 2;} else {do foo.bar();} ")
