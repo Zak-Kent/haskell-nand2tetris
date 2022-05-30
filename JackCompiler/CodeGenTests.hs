@@ -221,8 +221,8 @@ tWhileStatementCG =
             (Just
              (joinTags
               "label WHILE_EXP0 \
-             \ push constant 1 \
-             \ neg \
+             \ push constant 0 \
+             \ not \
              \ not \
              \ if-goto WHILE_END0 \
              \ call bar.baz 0\
