@@ -287,8 +287,8 @@ instance VMGen ParameterList where
 
 initSubSymTbl :: String -> SymbolTableState String
 initSubSymTbl methTyp = do
-  (clsSyms, _, wLC, iLC, cName) <- S.get
-  S.put (clsSyms, (subSyms methTyp cName), wLC, iLC, cName)
+  (clsSyms, _, _, _, cName) <- S.get
+  S.put (clsSyms, (subSyms methTyp cName), 0, 0, cName)
   return ""
   where subSyms mt cn = case mt of
           "method" ->
