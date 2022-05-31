@@ -160,7 +160,9 @@ tDoSubCallStatementCG =
 
 tReturnNoExprCG =
   TestCase (assertEqual "return"
-            (Just "")
+            (Just (joinTags
+                   "push constant 0 \
+                  \ return"))
             $ fmap joinTags
             $ evalVM
             $ tryParse statementP "return;")
@@ -171,7 +173,8 @@ tReturnWithExprCG =
              (joinTags
               "push constant 5 \
              \ push constant 5 \
-             \ call Math.multiply 2"))
+             \ call Math.multiply 2 \
+             \ return"))
             $ fmap joinTags
             $ evalVM
             $ tryParse statementP "return 5 * 5;")

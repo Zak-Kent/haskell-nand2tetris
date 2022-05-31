@@ -18,16 +18,6 @@ type ClassName = String
 -- (<class symbol table>, <subroutine symbol table>)
 type SymbolTableState = S.State (SymTable, SymTable, WhileLC, IfLC, ClassName)
 
-genMaybeCmd :: (VMGen a) => Maybe a -> SymbolTableState String
-genMaybeCmd Nothing = pure ""
-genMaybeCmd (Just cmd) = genVM cmd
-
-genMaybeReturn :: Maybe Expr -> SymbolTableState String
-genMaybeReturn Nothing = pure ""
-genMaybeReturn (Just (Expr (Leaf (KeywordConstant "this")))) =
-  pure "push pointer 0\n"
-genMaybeReturn (Just cmd) = genVM cmd
-
 genCmds :: [SymbolTableState String] -> SymbolTableState String
 genCmds cmds = fmap concat $ sequence cmds
 
@@ -171,6 +161,17 @@ incLabelCount s = do
              "if" -> iLC
              "while" -> wLC
 
+genReturn :: Maybe Expr -> SymbolTableState String
+genReturn Nothing =
+  genCmds [pure "push constant 0\n", pure "return\n"]
+genReturn (Just (Expr (Leaf (KeywordConstant "this")))) =
+  genCmds [pure "push pointer 0\n", pure "return\n"]
+genReturn (Just cmd) = genCmds [genVM cmd, pure "return\n"]
+
+genMaybeCmd :: (VMGen a) => Maybe a -> SymbolTableState String
+genMaybeCmd Nothing = pure ""
+genMaybeCmd (Just cmd) = genVM cmd
+
 instance VMGen Statement where
   genVM (Let (LetVarName vn) expr) =
     genCmds [genVM expr, pure "pop ", genVM vn]
@@ -190,11 +191,7 @@ instance VMGen Statement where
   -- this assumes that all do calls don't care about return value
   genVM (Do subCall) = genCmds [genVM subCall, pure "pop temp 0\n"]
 
-  genVM (Return maybeExpr) =
-    -- gen of VM 'return' cmd is handled in subroutineDec because
-    -- of the special handling 'void' needs and the fact the
-    -- return type 'void' vs. not, is known at that level
-    genMaybeReturn maybeExpr
+  genVM (Return maybeExpr) = genReturn maybeExpr
 
   genVM (If expr stmts maybeStmts) = do
     lc <- incLabelCount "if"
@@ -306,17 +303,13 @@ genVMFuncDec (Identifier subName) = do
   return $ printf "function %s.%s %d\n" cName subName
          $ occCount (Keyword "local") subSyms
 
-genReturn :: Type -> String
-genReturn (TKeyword (Keyword "void")) = "push constant 0\nreturn\n"
-genReturn _ = "return\n"
-
 classFieldCount :: SymbolTableState String
 classFieldCount = do
   (clsSyms, _, _, _, _) <- S.get
   return $ show $ occCount (Keyword "field") clsSyms
 
 instance VMGen SubroutineDec where
-  genVM (SubroutineDec (Keyword "method") tp sn params sb) = do
+  genVM (SubroutineDec (Keyword "method") _ sn params sb) = do
     _ <- initSubSymTbl "method"
     body <- genCmds [genVM params, genVM sb]
     funcDec <- genVMFuncDec sn
@@ -324,11 +317,10 @@ instance VMGen SubroutineDec where
       funcDec,
       -- set 'this' which is passed as arg 0 to every method
      "push argument 0\npop pointer 0\n",
-      body,
-      genReturn tp
+      body
       ]
 
-  genVM (SubroutineDec (Keyword "constructor") tp sn params sb) = do
+  genVM (SubroutineDec (Keyword "constructor") _ sn params sb) = do
     _ <- initSubSymTbl "constructor"
     body <- genCmds [genVM params, genVM sb]
     fieldCount <- classFieldCount
@@ -338,18 +330,17 @@ instance VMGen SubroutineDec where
       printf "push constant %s\n" fieldCount :: String,
       "call Memory.alloc 1\n",
       "pop pointer 0\n",
-      body,
-      genReturn tp
+      body
       ]
 
-  genVM (SubroutineDec (Keyword "function") tp sn params sb) = do
+  genVM (SubroutineDec (Keyword "function") _ sn params sb) = do
     _ <- initSubSymTbl "function"
     -- order matters here, body needs to be calculated first because
     -- the genVM calls below this level populate the symbol table which
     -- is needed to get the number of fields for the VM function declaration
     body <- genCmds [genVM params, genVM sb]
     funcDec <- genVMFuncDec sn
-    return $ concat [funcDec, body, genReturn tp]
+    return $ concat [funcDec, body]
 
 instance VMGen [SubroutineDec] where
   genVM subVarDecs = genCmds $ map genVM subVarDecs
