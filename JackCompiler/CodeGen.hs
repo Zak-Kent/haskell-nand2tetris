@@ -130,7 +130,8 @@ instance VMGen Term where
                                ("*", "call Math.multiply 2\n"),
                                ("/", "call Math.divide 2\n"),
                                ("<", "lt\n"), (">", "gt\n"),
-                               ("=", "eq\n"), ("&", "and\n")]
+                               ("=", "eq\n"), ("&", "and\n"),
+                               ("|", "or\n")]
 
 postOrderExpr :: Tree Term -> SymbolTableState String
 postOrderExpr (Leaf t) = genVM t
