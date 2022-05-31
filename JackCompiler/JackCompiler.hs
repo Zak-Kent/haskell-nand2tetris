@@ -32,9 +32,9 @@ writeVM src vm = do
   outFile <- openFile dst WriteMode
   hPutStr outFile vm
   hClose outFile
-  where -- dst = replaceExtensions src "vm"
+  where dst = replaceExtensions src "vm"
         -- for local testing so xml compare files aren't overwritten
-        dst = "./" ++ (takeBaseName src) ++ ".vm"
+        -- dst = "./" ++ (takeBaseName src) ++ ".vm"
 
 convertVM :: FilePath -> IO ()
 convertVM src = do
