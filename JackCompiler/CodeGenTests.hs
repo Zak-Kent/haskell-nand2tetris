@@ -158,6 +158,17 @@ tDoSubCallStatementCG =
              $ evalVM
              $ tryParse statementP "do foo.bar(1, 2);")
 
+tDoCallThisArg =
+  TestCase (assertEqual "do foo.bar(this);"
+            (Just
+             (joinTags
+              "push pointer 0 \
+             \ call foo.bar 1 \
+             \ pop temp 0"))
+             $ fmap joinTags
+             $ evalVM
+             $ tryParse statementP "do foo.bar(this);")
+
 tReturnNoExprCG =
   TestCase (assertEqual "return"
             (Just (joinTags
@@ -454,7 +465,8 @@ statementTests =
             TestLabel "if ((1 + 2) = 3) {let x = 6;}" tIfStatementNoElseCG,
             TestLabel "if with else" tIfStatementElseCG,
             TestLabel "{while (true) {do bar.baz();}}" tWhileStatementCG,
-            TestLabel "Let with array access on right" tLetStatementWithArrayAccess]
+            TestLabel "Let with array access on right" tLetStatementWithArrayAccess,
+            TestLabel "do call with a 'this' arg" tDoCallThisArg]
 
 symbolTableUpdateTests =
   TestList [TestLabel "single VarDec update" tSingleVarDecSymTableUpdate,

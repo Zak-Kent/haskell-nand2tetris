@@ -112,7 +112,8 @@ instance VMGen Term where
             (Just cmd) -> cmd
           keywordConsts = M.fromList [("null", "constant 0"),
                                       ("false", "constant 0"),
-                                      ("true", "constant 0\nnot")]
+                                      ("true", "constant 0\nnot"),
+                                      ("this", "pointer 0")]
 
   genVM (UnaryOp op t) = genCmds [genVM t, genUnaryOpSym op]
     where genUnaryOpSym o = case M.lookup o unaryOpSyms of
