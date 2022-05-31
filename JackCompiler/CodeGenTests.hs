@@ -22,6 +22,10 @@ classSymT = M.fromList [(Identifier "g",
                          SymbolInfo {typ = TKeyword (Keyword "int"),
                                      kind = Keyword "field",
                                      occurrence = 0}),
+                         (Identifier "f1",
+                         SymbolInfo {typ = TIdentifier (Identifier "Foo"),
+                                     kind = Keyword "field",
+                                     occurrence = 1}),
                          (Identifier "z",
                          SymbolInfo {typ = TKeyword (Keyword "int"),
                                      kind = Keyword "static",
@@ -169,6 +173,18 @@ tDoCallThisArg =
              $ evalVM
              $ tryParse statementP "do foo.bar(this);")
 
+tDoCallPushesObjPointer =
+  TestCase (assertEqual "do f1.foo(1);"
+            (Just
+             (joinTags
+              "push this 1 \
+             \ push constant 1 \
+             \ call Foo.foo 2 \
+             \ pop temp 0"))
+             $ fmap joinTags
+             $ evalVM
+             $ tryParse statementP "do f1.foo(1);")
+
 tReturnNoExprCG =
   TestCase (assertEqual "return"
             (Just (joinTags
@@ -300,7 +316,7 @@ tConstructor =
             (Just
              (joinTags
               "function Foo.new 0 \
-             \ push constant 1 \
+             \ push constant 2 \
              \ call Memory.alloc 1 \
              \ pop pointer 0 \
              \ push argument 0 \
@@ -466,7 +482,8 @@ statementTests =
             TestLabel "if with else" tIfStatementElseCG,
             TestLabel "{while (true) {do bar.baz();}}" tWhileStatementCG,
             TestLabel "Let with array access on right" tLetStatementWithArrayAccess,
-            TestLabel "do call with a 'this' arg" tDoCallThisArg]
+            TestLabel "do call with a 'this' arg" tDoCallThisArg,
+            TestLabel "do call pushes obj pointer before args" tDoCallPushesObjPointer]
 
 symbolTableUpdateTests =
   TestList [TestLabel "single VarDec update" tSingleVarDecSymTableUpdate,

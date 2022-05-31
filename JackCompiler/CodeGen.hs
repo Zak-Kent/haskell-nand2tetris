@@ -62,20 +62,28 @@ instance VMGen SubCall where
     genCmds [pure "push pointer 0\n",
              genVM exprs,
              (pure $ printf "call %s.%s %d\n" clsName sn ((+1) (length exprs)))]
-  genVM (SubCallClassOrVar cvn (Identifier subN) exprs) = do
-    -- if the first name is in the symbol table sub out for Class type
-    -- ex. var Baz b1; do b1.foo(); -> call Baz.foo 1
-    clsSym <- lookupSym cvn
-    genCmds [genVM exprs, pure $ genSubCmds clsSym]
-    where genSubCmds clsSym =
-            case clsSym of
-              Nothing -> genCall cvn (length exprs)
-              symI@(Just (SymbolInfo
-                          (TIdentifier tp) _ _)) ->
-                "push " ++  genSymCmd (fromJust symI)
-                ++ genCall tp ((+1) (length exprs))
-              _ -> error "SymbolInfo with a TKeyword encountered"
 
+  genVM (SubCallClassOrVar cvn (Identifier subN) exprs) = do
+    -- if the first name in a method call is in the symbol table sub it out
+    -- for the Class type when generating VM code and push the obj pointer
+    -- to the stack before any of the other arguments
+    -- ex. field Baz b1; do b1.foo(); -> push this 0 \n call Baz.foo 1
+    clsSym <- lookupSym cvn
+    genCmds [
+      pure $ genPush clsSym,
+      genVM exprs,
+      pure $ genVMCall clsSym
+      ]
+    where genPush clsSym = case clsSym of
+            -- if symbol isn't in Class sym table don't push obj pointer
+            Nothing -> ""
+            (Just symI) -> printf "push %s" $ genSymCmd symI
+          genVMCall clsSym = case clsSym of
+            Nothing -> genCall cvn (length exprs)
+            (Just (SymbolInfo
+                    (TIdentifier tp) _ _)) -> genCall tp ((+1) (length exprs))
+            (Just e) -> error $
+              printf "SymbolInfo with a TKeyword encountered: %s" (show e)
           genCall (Identifier name) nExprs =
             printf "call %s.%s %d\n" name subN nExprs
 
